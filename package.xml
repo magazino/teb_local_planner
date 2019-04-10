@@ -7,7 +7,7 @@
     to the base_local_planner of the 2D navigation stack.
     The underlying method called Timed Elastic Band locally optimizes
     the robot's trajectory with respect to trajectory execution time,
-    separation from obstacles and compliance with kinodynamic constraints at runtime.	
+    separation from obstacles and compliance with kinodynamic constraints at runtime.
   </description>
 
 
@@ -23,10 +23,10 @@
 
   <build_depend>cmake_modules</build_depend>
   <build_depend>message_generation</build_depend>
-  
+
   <build_export_depend>message_runtime</build_export_depend>
   <exec_depend>message_runtime</exec_depend>
-  
+
   <depend>base_local_planner</depend>
   <depend>costmap_2d</depend>
   <depend>costmap_converter</depend>
@@ -37,6 +37,8 @@
   <depend>libg2o</depend>
   <depend>nav_core</depend>
   <depend>nav_msgs</depend>
+  <depend>mbf_costmap_core</depend>
+  <depend>mbf_msgs</depend>
   <depend>pluginlib</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
@@ -46,5 +48,6 @@
 
   <export>
     <nav_core plugin="${prefix}/teb_local_planner_plugin.xml"/>
+    <mbf_costmap_core plugin="${prefix}/teb_local_planner_plugin.xml"/>
   </export>
 </package>
