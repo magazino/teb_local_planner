@@ -1215,8 +1215,12 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
 
   for (int i=0; i <= look_ahead_idx; ++i)
   {
-    if ( costmap_model->footprintCost(teb().Pose(i).x(), teb().Pose(i).y(), teb().Pose(i).theta(), footprint_spec, inscribed_radius, circumscribed_radius) < 0 )
+    if ( costmap_model->footprintCost(teb().Pose(i).x(), teb().Pose(i).y(), teb().Pose(i).theta(), footprint_spec, inscribed_radius, circumscribed_radius) < 0 ) {
+      if (visualization_) {
+        visualization_->publishRobotFootprintModel(teb_.Pose(i), *robot_model_);
+      }
       return false;
+    }
 
     // check if distance between two poses is higher than the robot radius and interpolate in that case
     // (if obstacles are pushing two consecutive poses away, the center between two consecutive poses might coincide with the obstacle ;-)!
@@ -1227,24 +1231,15 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
       Eigen::Vector2d delta_dist = teb().Pose(i+1).position()-teb().Pose(i).position();
       if(fabs(delta_rot) > cfg_->trajectory.min_resolution_collision_check_angular || delta_dist.norm() > inscribed_radius)
       {
-        int n_additional_samples = std::max(std::ceil(fabs(delta_rot) / cfg_->trajectory.min_resolution_collision_check_angular), 
-                                            std::ceil(delta_dist.norm() / inscribed_radius)) - 1;
-        PoseSE2 intermediate_pose = teb().Pose(i);
-        for(int step = 0; step < n_additional_samples; ++step)
-        {
-          intermediate_pose.position() = intermediate_pose.position() + delta_dist / (n_additional_samples + 1.0);
-          intermediate_pose.theta() = g2o::normalize_theta(intermediate_pose.theta() + 
-                                                           delta_rot / (n_additional_samples + 1.0));
-          if ( costmap_model->footprintCost(intermediate_pose.x(), intermediate_pose.y(), intermediate_pose.theta(),
-            footprint_spec, inscribed_radius, circumscribed_radius) == -1 )
-          {
-            if (visualization_) 
-            {
-              visualization_->publishRobotFootprintModel(intermediate_pose, *robot_model_);
-            }
-            return false;
+        // check one more time
+        PoseSE2 center = PoseSE2::average(teb().Pose(i), teb().Pose(i+1));
+        if ( costmap_model->footprintCost(center.x(), center.y(), center.theta(), footprint_spec, inscribed_radius, circumscribed_radius) < 0 ) {
+          if (visualization_) {
+            visualization_->publishRobotFootprintModel(center, *robot_model_);
           }
+          return false;
         }
+
       }
 
     }
