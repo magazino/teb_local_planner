@@ -1248,6 +1248,16 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
         }
 
       }
+      double delta_rot = g2o::normalize_theta(teb().Pose(i+1).theta()-teb().Pose(i).theta());
+      if ( fabs(delta_rot) > M_PI / 2.0)
+      {
+          ROS_WARN_STREAM("Detected 2 poses with an orientation diff of "<<delta_rot);
+          PoseSE2 center = PoseSE2::average(teb().Pose(i), teb().Pose(i+1));
+          if ( costmap_model->footprintCost(center.x(), center.y(), center.theta(), footprint_spec, inscribed_radius, circumscribed_radius) == -1 ) {
+            ROS_ERROR("Failed due to unaccounted rotation diff");
+            return false;
+          }
+      }
 
     }
   }
