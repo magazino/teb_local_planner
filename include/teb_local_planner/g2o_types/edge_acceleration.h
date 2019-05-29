@@ -130,10 +130,10 @@ public:
 //     vel1 *= g2o::sign(diff1[0]*cos(pose1->theta()) + diff1[1]*sin(pose1->theta())); 
 //     vel2 *= g2o::sign(diff2[0]*cos(pose2->theta()) + diff2[1]*sin(pose2->theta())); 
     vel1 *= fast_sigmoid( 100*(diff1.x()*cos(pose1->theta()) + diff1.y()*sin(pose1->theta())) ); 
-    vel2 *= fast_sigmoid( 100*(diff2.x()*cos(pose2->theta()) + diff2.y()*sin(pose2->theta())) ); 
-    
+    vel2 *= fast_sigmoid( 100*(diff2.x()*cos(pose2->theta()) + diff2.y()*sin(pose2->theta())) );
+    //const double vel_2_sign = fast_sigmoid( 100*(diff2.x()*cos(pose2->theta()) + diff2.y()*sin(pose2->theta())) );
+    //const double acc_lin = fabs(2.0 * (dist - vel1 * dt->dt() * vel_sign) / (dt->dt() * dt->dt()));
     const double acc_lin  = (vel2 - vel1)*2 / ( dt1->dt() + dt2->dt() );
-   
 
     _error[0] = penaltyBoundToInterval(acc_lin,cfg_->robot.acc_lim_x,cfg_->optim.penalty_epsilon);
     
@@ -330,6 +330,8 @@ public:
     vel2 *= fast_sigmoid( 100*(diff.x()*cos(pose1->theta()) + diff.y()*sin(pose1->theta())) ); 
     
     const double acc_lin  = (vel2 - vel1) / dt->dt();
+    // double vel_sign = fast_sigmoid( 100*(diff.x()*cos(pose1->theta()) + diff.y()*sin(pose1->theta())) );
+    // acc_lin = fabs(2.0 * (dist - _measurement->linear.x * dt->dt() * vel_sign) / (dt->dt() * dt->dt()));  // min acc to repsect constrain
     
     _error[0] = penaltyBoundToInterval(acc_lin,cfg_->robot.acc_lim_x,cfg_->optim.penalty_epsilon);
     

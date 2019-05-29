@@ -206,6 +206,13 @@ public:
    * @return Shared pointer to the best TebOptimalPlanner that contains the selected trajectory (TimedElasticBand).
    */
   TebOptimalPlannerPtr bestTeb() const {return tebs_.empty() ? TebOptimalPlannerPtr() : tebs_.size()==1 ? tebs_.front() : best_teb_;}
+  TebOptimalPlannerPtr findBestTeb(){
+      if(tebs_.empty())
+        return TebOptimalPlannerPtr();
+      if (!best_teb_ || std::find(tebs_.begin(), tebs_.end(), best_teb_) == tebs_.end())
+        best_teb_ = tebs_.front(); // TODO: search for the min score or store in set
+      return best_teb_;
+  };
 
   /**
    * @brief Check whether the planned trajectory is feasible or not.
@@ -222,6 +229,15 @@ public:
    */
   virtual bool isTrajectoryFeasible(base_local_planner::CostmapModel* costmap_model, const std::vector<geometry_msgs::Point>& footprint_spec,
                                     double inscribed_radius = 0.0, double circumscribed_radius=0.0, int look_ahead_idx=-1);
+  /**
+   * @brief Removes from tebs_ all the plans but the best one
+   */
+  void removeSuboptimalPaths();
+
+  /**
+   * @ brief removes the specified teb from tebs_
+   */
+  void removeTeb(TebOptimalPlannerPtr& teb);
 
   //@}
 

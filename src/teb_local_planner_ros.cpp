@@ -257,7 +257,7 @@ uint32_t TebLocalPlannerROS::computeVelocityCommands(const geometry_msgs::PoseSt
   robot_vel_.angular.z = tf::getYaw(robot_vel_tf.getRotation());
 
   // prune global plan to cut off parts of the past (spatially before the robot)
-  pruneGlobalPlan(*tf_, robot_pose, global_plan_);
+  pruneGlobalPlan(*tf_, robot_pose, global_plan_, cfg_.trajectory.global_plan_prune_distance_backward);
 
   // Transform global plan to the frame of interest (w.r.t. the local costmap)
   std::vector<geometry_msgs::PoseStamped> transformed_plan;
@@ -424,7 +424,7 @@ uint32_t TebLocalPlannerROS::computeVelocityCommands(const geometry_msgs::PoseSt
   last_cmd_ = cmd_vel.twist;
 
   // Now visualize everything
-  planner_->visualize();
+  //planner_->visualize();
   visualization_->publishObstacles(obstacles_);
   visualization_->publishViaPoints(via_points_);
   visualization_->publishGlobalPlan(global_plan_);
@@ -603,7 +603,7 @@ void TebLocalPlannerROS::updateViaPointsContainer(const std::vector<geometry_msg
   via_points_.clear();
 
   if (min_separation<=0)
-    return;
+    return;  // via_points = transformed_plan?
 
   std::size_t prev_idx = 0;
   for (std::size_t i=1; i < transformed_plan.size(); ++i) // skip first one, since we do not need any point before the first min_separation [m]
@@ -694,7 +694,9 @@ bool TebLocalPlannerROS::transformGlobalPlan(const tf::TransformListener& tf, co
 
     // get plan_to_global_transform from plan frame to global_frame
     tf::StampedTransform plan_to_global_transform;
-    tf.waitForTransform(global_frame, ros::Time::now(),
+    if(global_frame != plan_pose.header.frame_id)
+        ROS_WARN_STREAM_THROTTLE(1, "Global frame: "<<global_frame<<" plan frame: "<<plan_pose.header.frame_id<<" Why son?");
+    tf.waitForTransform(global_frame, ros::Time::now(),  // Time(0) instead? losing time here
     plan_pose.header.frame_id, plan_pose.header.stamp,
     plan_pose.header.frame_id, ros::Duration(0.5));
     tf.lookupTransform(global_frame, ros::Time(),
@@ -723,7 +725,11 @@ bool TebLocalPlannerROS::transformGlobalPlan(const tf::TransformListener& tf, co
       double y_diff = robot_pose.getOrigin().y() - global_plan[j].pose.position.y;
       double new_sq_dist = x_diff * x_diff + y_diff * y_diff;
       if (new_sq_dist > sq_dist_threshold)
+      {
+        if(j == 0)
+            ROS_ERROR_THROTTLE(1, "The first point of the global plan is out of the costmap... bad global plan crop?");
         break;  // force stop if we have reached the costmap border
+      }
 
       if (new_sq_dist < sq_dist) // find closest distance
       {
@@ -746,17 +752,13 @@ bool TebLocalPlannerROS::transformGlobalPlan(const tf::TransformListener& tf, co
       tf_pose.stamp_ = plan_to_global_transform.stamp_;
       tf_pose.frame_id_ = global_frame;
       tf::poseStampedTFToMsg(tf_pose, newer_pose);
-
       transformed_plan.push_back(newer_pose);
-
       double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
       double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
       sq_dist = x_diff * x_diff + y_diff * y_diff;
-
       // caclulate distance to previous pose
-      if (i>0 && max_plan_length>0)
+      if (i > 0 && max_plan_length > 0)
         plan_length += distance_points2d(global_plan[i-1].pose.position, global_plan[i].pose.position);
-
       ++i;
     }
 
@@ -764,6 +766,7 @@ bool TebLocalPlannerROS::transformGlobalPlan(const tf::TransformListener& tf, co
     // the resulting transformed plan can be empty. In that case we explicitly inject the global goal.
     if (transformed_plan.empty())
     {
+      ROS_WARN_THROTTLE(1, "Manually injecting final pose, this is fishy");
       tf::poseStampedMsgToTF(global_plan.back(), tf_pose);
       tf_pose.setData(plan_to_global_transform * tf_pose);
       tf_pose.stamp_ = plan_to_global_transform.stamp_;
@@ -773,7 +776,7 @@ bool TebLocalPlannerROS::transformGlobalPlan(const tf::TransformListener& tf, co
       transformed_plan.push_back(newer_pose);
 
       // Return the index of the current goal point (inside the distance threshold)
-      if (current_goal_idx) *current_goal_idx = int(global_plan.size())-1;
+      if (current_goal_idx) *current_goal_idx = int(global_plan.size())-1;  //TODO: why pointer?
     }
     else
     {
@@ -934,8 +937,8 @@ void TebLocalPlannerROS::configureBackupModes(std::vector<geometry_msgs::PoseSta
         // and a reduced horizon should occur just rarely.
         int new_goal_idx_transformed_plan = int(transformed_plan.size()) - horizon_reduction - 1;
         goal_idx -= horizon_reduction;
-        if (new_goal_idx_transformed_plan>0 && goal_idx >= 0)
-            transformed_plan.erase(transformed_plan.begin()+new_goal_idx_transformed_plan, transformed_plan.end());
+        if (new_goal_idx_transformed_plan > 0 && goal_idx >= 0)
+            transformed_plan.erase(transformed_plan.begin() + new_goal_idx_transformed_plan, transformed_plan.end());
         else
             goal_idx += horizon_reduction; // this should not happen, but safety first ;-)
     }
@@ -978,7 +981,7 @@ void TebLocalPlannerROS::configureBackupModes(std::vector<geometry_msgs::PoseSta
             ROS_INFO("TebLocalPlannerROS: oscillation recovery disabled/expired.");
         }
     }
-
+    // TODO: detect and recovery linear oscillations?
 }
 
 

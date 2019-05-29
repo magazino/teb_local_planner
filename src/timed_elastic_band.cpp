@@ -318,7 +318,7 @@ bool TimedElasticBand::initTrajectoryToGoal(const PoseSE2& start, const PoseSE2&
     // if number of samples is not larger than min_samples, insert manually
     if ( sizePoses() < min_samples-1 )
     {
-      ROS_DEBUG("initTEBtoGoal(): number of generated samples is less than specified by min_samples. Forcing the insertion of more samples...");
+      ROS_INFO("initTEBtoGoal(): number of generated samples is less than specified by min_samples. Forcing the insertion of more samples... consider changing diststep or this logic instead");
       while (sizePoses() < min_samples-1) // subtract goal point that will be added later
       {
         // simple strategy: interpolate between the current pose and the goal
@@ -331,7 +331,7 @@ bool TimedElasticBand::initTrajectoryToGoal(const PoseSE2& start, const PoseSE2&
     // add goal
     if (max_vel_x > 0) timestep = (goal.position()-BackPose().position()).norm()/max_vel_x;
     addPoseAndTimeDiff(goal,timestep); // add goal point
-    setPoseVertexFixed(sizePoses()-1,true); // GoalConf is a fixed constraint during optimization	
+    setPoseVertexFixed(sizePoses()-1,true); // GoalConf is a fixed constraint during optimization
   }
   else // size!=0
   {

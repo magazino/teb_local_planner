@@ -74,14 +74,14 @@ TebOptimalPlannerPtr HomotopyClassPlanner::addAndInitNewTeb(BidirIter path_start
   if (start_velocity)
     candidate->setVelocityStart(*start_velocity);
 
-  EquivalenceClassPtr H = calculateEquivalenceClass(candidate->teb().poses().begin(), candidate->teb().poses().end(), getCplxFromVertexPosePtr, obstacles_,
-                                                    candidate->teb().timediffs().begin(), candidate->teb().timediffs().end());
+  //EquivalenceClassPtr H = calculateEquivalenceClass(candidate->teb().poses().begin(), candidate->teb().poses().end(), getCplxFromVertexPosePtr, obstacles_,
+  //                                                  candidate->teb().timediffs().begin(), candidate->teb().timediffs().end());
 
-  if(addEquivalenceClassIfNew(H))
-  {
+  //if(addEquivalenceClassIfNew(H))
+  //{
     tebs_.push_back(candidate);
     return tebs_.back();
-  }
+  //}
 
   // If the candidate constitutes no new equivalence class, return a null pointer
   return TebOptimalPlannerPtr();

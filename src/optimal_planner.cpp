@@ -273,6 +273,7 @@ bool TebOptimalPlanner::plan(const tf::Pose& start, const tf::Pose& goal, const 
 
 bool TebOptimalPlanner::plan(const PoseSE2& start, const PoseSE2& goal, const geometry_msgs::Twist* start_vel, bool free_goal_vel)
 {
+  // TODO: reduntant code here
   ROS_ASSERT_MSG(initialized_, "Call initialize() first.");
   if (!teb_.isInit())
   {
@@ -1233,12 +1234,16 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
     {
       if ( (teb().Pose(i+1).position()-teb().Pose(i).position()).norm() > inscribed_radius)
       {
+        ROS_ERROR_STREAM("The distance between 2 poses is bigger than the inscribed radius O_o rad: " << inscribed_radius<<
+            " poses distance "<<(teb().Pose(i+1).position()-teb().Pose(i).position()).norm()<<" pose i x: "<<teb().Pose(i).x()<<" y "<<teb().Pose(i).y()<<
+            " pose i+1 x: "<<teb().Pose(i+1).x()<<" y "<<teb().Pose(i+1).y()<<" Index i: "<<i);
         // check one more time
         PoseSE2 center = PoseSE2::average(teb().Pose(i), teb().Pose(i+1));
         if ( costmap_model->footprintCost(center.x(), center.y(), center.theta(), footprint_spec, inscribed_radius, circumscribed_radius) == -1 ) {
           if (visualization_) {
             visualization_->publishRobotFootprintModel(center, *robot_model_);
           }
+          ROS_ERROR("Failed due to unaccounted intermediate pose");
           return false;
         }
 

@@ -124,6 +124,7 @@ void lrKeyPointGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, dou
 
   if (hcp_->obstacles()!=NULL)
   {
+    ROS_INFO_STREAM("Number of hcp obstacles: "<<std::distance(hcp_->obstacles()->begin(), hcp_->obstacles()->end()));
     for (ObstContainer::const_iterator it_obst = hcp_->obstacles()->begin(); it_obst != hcp_->obstacles()->end(); ++it_obst)
     {
       // check if obstacle is placed in front of start point
@@ -150,7 +151,7 @@ void lrKeyPointGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, dou
 
   HcGraphVertexType goal_vtx = boost::add_vertex(graph_); // goal vertex
   graph_[goal_vtx].pos = goal.position();
-
+  ROS_INFO("Inserting graph edges");
   // Insert Edges
   HcGraphVertexIterator it_i, end_i, it_j, end_j;
   for (boost::tie(it_i,end_i) = boost::vertices(graph_); it_i!=end_i-1; ++it_i) // ignore goal in this loop
@@ -211,6 +212,7 @@ void lrKeyPointGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, dou
   // Find all paths between start and goal!
   std::vector<HcGraphVertexType> visited;
   visited.push_back(start_vtx);
+  ROS_INFO("Graph populated, running depth first");
   DepthFirst(graph_,visited,goal_vtx, start.theta(), goal.theta(), start_velocity);
 }
 
@@ -220,14 +222,13 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
 {
   // Clear existing graph and paths
   clearGraph();
-
   // Direction-vector between start and goal and normal-vector:
   Eigen::Vector2d diff = goal.position()-start.position();
   double start_goal_dist = diff.norm();
 
   if (start_goal_dist<cfg_->goal_tolerance.xy_goal_tolerance)
   {
-    ROS_DEBUG("HomotopyClassPlanner::createProbRoadmapGraph(): xy-goal-tolerance already reached.");
+    ROS_INFO("HomotopyClassPlanner::createProbRoadmapGraph(): xy-goal-tolerance already reached.");
     if (hcp_->getTrajectoryContainer().empty())
     {
       ROS_INFO("HomotopyClassPlanner::createProbRoadmapGraph(): Initializing a small straight line to just correct orientation errors.");
@@ -240,7 +241,6 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
 
   // Now sample vertices between start, goal and a specified width between both sides
   // Let's start with a square area between start and goal (maybe change it later to something like a circle or whatever)
-
   double area_width = cfg_->hcp.roadmap_graph_area_width;
 
   boost::random::uniform_real_distribution<double> distribution_x(0, start_goal_dist * cfg_->hcp.roadmap_graph_area_length_scale);
@@ -260,7 +260,7 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
   graph_[start_vtx].pos = start.position();
   diff.normalize(); // normalize in place
 
-
+  ROS_INFO_STREAM("Sampling on "<<cfg_->hcp.roadmap_graph_no_samples<<" vertices samples");
   // Start sampling
   for (int i=0; i < cfg_->hcp.roadmap_graph_no_samples; ++i)
   {
@@ -298,6 +298,7 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
 
   // Insert Edges
   HcGraphVertexIterator it_i, end_i, it_j, end_j;
+  //ROS_INFO_STREAM("Number of obstacles considered: "<<std::distance(hcp_->obstacles()->begin(), hcp_->obstacles()->end()));
   for (boost::tie(it_i,end_i) = boost::vertices(graph_); it_i!=boost::prior(end_i); ++it_i) // ignore goal in this loop
   {
     for (boost::tie(it_j,end_j) = boost::vertices(graph_); it_j!=end_j; ++it_j) // check all forward connections
@@ -315,6 +316,8 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
 
       // Collision Check
       bool collision = false;
+      if(false)  // Obstacles check
+      {
       for (ObstContainer::const_iterator it_obst = hcp_->obstacles()->begin(); it_obst != hcp_->obstacles()->end(); ++it_obst)
       {
         if ( (*it_obst)->checkLineIntersection(graph_[*it_i].pos,graph_[*it_j].pos, dist_to_obst) )
@@ -322,6 +325,7 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
           collision = true;
           break;
         }
+      }
       }
       if (collision)
         continue;
