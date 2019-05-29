@@ -299,29 +299,21 @@ void HomotopyClassPlanner::updateReferenceTrajectoryViaPoints(bool all_trajector
   if ( (!all_trajectories && !initial_plan_) || !via_points_ || via_points_->empty() || cfg_->optim.weight_viapoint <= 0)
     return;
 
-  if(equivalence_classes_.size() < tebs_.size())
-  {
-    ROS_ERROR("HomotopyClassPlanner::updateReferenceTrajectoryWithViaPoints(): Number of h-signatures does not match number of trajectories.");
-    return;
-  }
-
   if (all_trajectories)
   {
     // enable via-points for all tebs
-    for (std::size_t i=0; i < equivalence_classes_.size(); ++i)
+    for (std::size_t i=0; i < tebs_.size(); ++i)
     {
         tebs_[i]->setViaPoints(via_points_);
     }
   }
   else
   {
-    // enable via-points for teb in the same hommotopy class as the initial_plan and deactivate it for all other ones
-    for (std::size_t i=0; i < equivalence_classes_.size(); ++i)
+    // enable via-points only for some of the trajectories
+    for (std::size_t i=0; i < tebs_.size(); ++i)
     {
-      if(initial_plan_eq_class_->isEqual(*equivalence_classes_[i].first))
-        tebs_[i]->setViaPoints(via_points_);
-      else
-        tebs_[i]->setViaPoints(NULL);
+        if(i % 2 == 0)
+            tebs_[i]->setViaPoints(via_points_);
     }
   }
 }
