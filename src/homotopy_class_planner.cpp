@@ -119,7 +119,6 @@ bool HomotopyClassPlanner::plan(const PoseSE2& start, const PoseSE2& goal, const
   // Optimize all trajectories in alternative homotopy classes
   optimizeAllTEBs(cfg_->optim.no_inner_iterations, cfg_->optim.no_outer_iterations);
   // Delete any detours
-  //ROS_INFO("Deleting detours");
   //deleteTebDetours(-0.1);
   // Select which candidate (based on alternative homotopy classes) should be used
   selectBestTeb();
@@ -319,7 +318,8 @@ void HomotopyClassPlanner::updateReferenceTrajectoryViaPoints(bool all_trajector
 }
 
 
-void HomotopyClassPlanner::exploreEquivalenceClassesAndInitTebs(const PoseSE2& start, const PoseSE2& goal, double dist_to_obst, const geometry_msgs::Twist* start_vel)
+void HomotopyClassPlanner::exploreEquivalenceClassesAndInitTebs(const PoseSE2& start, const PoseSE2& goal,
+    double dist_to_obst, const geometry_msgs::Twist* start_vel)
 {
   // first process old trajectories
   //renewAndAnalyzeOldTebs(false);
@@ -330,7 +330,6 @@ void HomotopyClassPlanner::exploreEquivalenceClassesAndInitTebs(const PoseSE2& s
   }
   else
   {
-    ROS_INFO("Getting initial plan teb");
     initial_plan_teb_.reset();
     initial_plan_teb_ = getInitialPlanTEB(); // this method searches for initial_plan_eq_class_ in the teb container (-> if !initial_plan_teb_)
   }
@@ -348,12 +347,10 @@ TebOptimalPlannerPtr HomotopyClassPlanner::addAndInitNewTeb(const PoseSE2& start
 
   if (start_velocity)
     candidate->setVelocityStart(*start_velocity);
-  ROS_INFO("NOT Calculating equivalence classss for the new TEB");
   if(false)  // if compute_equivalence_class_
   {
     EquivalenceClassPtr H = calculateEquivalenceClass(candidate->teb().poses().begin(), candidate->teb().poses().end(), getCplxFromVertexPosePtr, obstacles_,
                                                     candidate->teb().timediffs().begin(), candidate->teb().timediffs().end());
-    ROS_INFO("Equivalence class calculated");
     if(addEquivalenceClassIfNew(H))
     {
       tebs_.push_back(candidate);
@@ -368,17 +365,20 @@ TebOptimalPlannerPtr HomotopyClassPlanner::addAndInitNewTeb(const PoseSE2& start
 }
 
 
-TebOptimalPlannerPtr HomotopyClassPlanner::addAndInitNewTeb(const std::vector<geometry_msgs::PoseStamped>& initial_plan, const geometry_msgs::Twist* start_velocity)
+TebOptimalPlannerPtr HomotopyClassPlanner::addAndInitNewTeb(const std::vector<geometry_msgs::PoseStamped>& initial_plan,
+    const geometry_msgs::Twist* start_velocity)
 {
+  if(tebs_.size() >= cfg_->hcp.max_number_classes)
+      return TebOptimalPlannerPtr();  // Handles single class planning
   TebOptimalPlannerPtr candidate = TebOptimalPlannerPtr( new TebOptimalPlanner(*cfg_, obstacles_, robot_model_));
 
-  candidate->teb().initTrajectoryToGoal(initial_plan, cfg_->robot.max_vel_x, true, cfg_->trajectory.min_samples, cfg_->trajectory.allow_init_with_backwards_motion);
+  candidate->teb().initTrajectoryToGoal(initial_plan, cfg_->robot.max_vel_x, false, cfg_->trajectory.min_samples, cfg_->trajectory.allow_init_with_backwards_motion);
 
   if (start_velocity)
     candidate->setVelocityStart(*start_velocity);
 
   // store the h signature of the initial plan to enable searching a matching teb later.
-  if(false)
+  if(false)  // compute_eq_class_
   {
   initial_plan_eq_class_ = calculateEquivalenceClass(candidate->teb().poses().begin(), candidate->teb().poses().end(), getCplxFromVertexPosePtr, obstacles_,
                                                      candidate->teb().timediffs().begin(), candidate->teb().timediffs().end());
@@ -405,7 +405,7 @@ void HomotopyClassPlanner::updateAllTEBs(const PoseSE2* start, const PoseSE2* go
   // Since all Tebs are sharing the same fixed goal pose, just take the first candidate:
   if (!tebs_.empty() && (goal->position() - tebs_.front()->teb().BackPose().position()).norm() >= cfg_->trajectory.force_reinit_new_goal_dist)
   {
-      ROS_WARN("New goal: distance to existing goal is higher than the specified threshold. Reinitalizing trajectories.");
+      ROS_WARN("New goal: distance to existing goal is higher than the specified threshold.Reinitializing trajectories");
       tebs_.clear();
       equivalence_classes_.clear();
   }
@@ -516,7 +516,6 @@ TebOptimalPlannerPtr HomotopyClassPlanner::getInitialPlanTEB()
     // otherwise check if the stored reference equivalence class exist in the list of known classes
     if (initial_plan_eq_class_ && initial_plan_eq_class_->isValid())
     {
-        ROS_INFO_STREAM("N of found equivalence classes: "<<equivalence_classes_.size());
          if (equivalence_classes_.size() == tebs_.size())
          {
             for (int i=0; i<equivalence_classes_.size(); ++i)
@@ -600,6 +599,9 @@ TebOptimalPlannerPtr HomotopyClassPlanner::selectBestTeb()
           min_cost = teb_cost;
         }
      }
+     //ROS_INFO("Selected best teb:");
+     //for(auto& pose : best_teb_->teb().poses())
+     //  ROS_INFO_STREAM("X "<<pose->x()<<" Y "<<pose->y()<<" theta: "<<pose->theta());
 
 
   // in case we haven't found any teb due to some previous checks, investigate list again
@@ -638,6 +640,7 @@ TebOptimalPlannerPtr HomotopyClassPlanner::selectBestTeb()
       if ((now-last_eq_class_switching_time_).toSec() > cfg_->hcp.switching_blocking_period)
       {
         last_eq_class_switching_time_ = now;
+        ROS_INFO("Switching to a teb with a lower cost");
       }
       else
       {
@@ -647,7 +650,6 @@ TebOptimalPlannerPtr HomotopyClassPlanner::selectBestTeb()
       }
 
     }
-    visualize();  // Put here to visualize also the deleted trajectories
     return best_teb_;
 }
 
@@ -693,10 +695,15 @@ bool HomotopyClassPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel
   }
   else
   {
+     //ROS_INFO("Costmap check succeeded. Selected best teb after costmap check:");
+     //for(auto& pose : best_teb_->teb().poses())
+     //  ROS_INFO_STREAM("X "<<pose->x()<<" Y "<<pose->y()<<" theta: "<<pose->theta());
+    visualize();  // Put here to visualize also the suboptimal trajectories
     removeSuboptimalPaths();
   }
   return feasible;
 }
+
 
 void HomotopyClassPlanner::removeSuboptimalPaths()
 {

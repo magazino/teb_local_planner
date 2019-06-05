@@ -1232,10 +1232,16 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
     // (if obstacles are pushing two consecutive poses away, the center between two consecutive poses might coincide with the obstacle ;-)!
     if (i<look_ahead_idx)
     {
-      if ( (teb().Pose(i+1).position()-teb().Pose(i).position()).norm() > inscribed_radius)
+      double contiguous_dist = (teb().Pose(i+1).position()-teb().Pose(i).position()).norm();
+      if (contiguous_dist > 0.8)
+      {
+          ROS_ERROR_STREAM("Not continuous trajectory, detected an hole of: "<<contiguous_dist);
+          return false;
+      }
+      if (contiguous_dist > inscribed_radius)
       {
         ROS_ERROR_STREAM("The distance between 2 poses is bigger than the inscribed radius O_o rad: " << inscribed_radius<<
-            " poses distance "<<(teb().Pose(i+1).position()-teb().Pose(i).position()).norm()<<" pose i x: "<<teb().Pose(i).x()<<" y "<<teb().Pose(i).y()<<
+            " poses distance "<<contiguous_dist<<" pose i x: "<<teb().Pose(i).x()<<" y "<<teb().Pose(i).y()<<
             " pose i+1 x: "<<teb().Pose(i+1).x()<<" y "<<teb().Pose(i+1).y()<<" Index i: "<<i);
         // check one more time
         PoseSE2 center = PoseSE2::average(teb().Pose(i), teb().Pose(i+1));
@@ -1246,10 +1252,14 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
           ROS_ERROR("Failed due to unaccounted intermediate pose");
           return false;
         }
-
       }
       double delta_rot = g2o::normalize_theta(teb().Pose(i+1).theta()-teb().Pose(i).theta());
       if ( fabs(delta_rot) > M_PI / 2.0)
+      {
+          ROS_ERROR_STREAM("Discontinuous trajectory: detected 2 poses with an orientation diff of "<<delta_rot);
+          return false;
+      }
+      if ( fabs(delta_rot) > M_PI / 4.0)
       {
           ROS_WARN_STREAM("Detected 2 poses with an orientation diff of "<<delta_rot);
           PoseSE2 center = PoseSE2::average(teb().Pose(i), teb().Pose(i+1));
@@ -1258,7 +1268,6 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
             return false;
           }
       }
-
     }
   }
   return true;

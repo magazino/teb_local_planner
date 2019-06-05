@@ -279,7 +279,8 @@ double TimedElasticBand::getAccumulatedDistance() const
   return dist;
 }
 
-bool TimedElasticBand::initTrajectoryToGoal(const PoseSE2& start, const PoseSE2& goal, double diststep, double max_vel_x, int min_samples, bool guess_backwards_motion)
+bool TimedElasticBand::initTrajectoryToGoal(const PoseSE2& start, const PoseSE2& goal,
+    double diststep, double max_vel_x, int min_samples, bool guess_backwards_motion)
 {
   if (!isInit())
   {   

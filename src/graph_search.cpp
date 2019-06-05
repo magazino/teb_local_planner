@@ -218,7 +218,8 @@ void lrKeyPointGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, dou
 
 
 
-void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, double dist_to_obst, double obstacle_heading_threshold, const geometry_msgs::Twist* start_velocity)
+void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, double dist_to_obst,
+  double obstacle_heading_threshold, const geometry_msgs::Twist* start_velocity)
 {
   // Clear existing graph and paths
   clearGraph();
@@ -260,7 +261,6 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
   graph_[start_vtx].pos = start.position();
   diff.normalize(); // normalize in place
 
-  ROS_INFO_STREAM("Sampling on "<<cfg_->hcp.roadmap_graph_no_samples<<" vertices samples");
   // Start sampling
   for (int i=0; i < cfg_->hcp.roadmap_graph_no_samples; ++i)
   {
