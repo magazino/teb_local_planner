@@ -262,29 +262,31 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
   diff.normalize(); // normalize in place
 
   // Start sampling
+
   for (int i=0; i < cfg_->hcp.roadmap_graph_no_samples; ++i)
   {
     Eigen::Vector2d sample;
-//     bool coll_free;
-//     do // sample as long as a collision free sample is found
-//     {
+     bool coll_free;
+     do // sample as long as a collision free sample is found
+     {
       // Sample coordinates
       sample = area_origin + rot_phi*Eigen::Vector2d(distribution_x(rnd_generator_), distribution_y(rnd_generator_));
 
       // Test for collision
       // we do not care for collision checking here to improve efficiency, since we perform resampling repeatedly.
       // occupied vertices are ignored in the edge insertion state since they always violate the edge-obstacle collision check.
-//       coll_free = true;
-//       for (ObstContainer::const_iterator it_obst = obstacles_->begin(); it_obst != obstacles_->end(); ++it_obst)
-//       {
-//         if ( (*it_obst)->checkCollision(sample, dist_to_obst)) // TODO really keep dist_to_obst here?
-//         {
-//           coll_free = false;
-//           break;
-//         }
-//       }
-//
-//     } while (!coll_free && ros::ok());
+      
+       coll_free = true;
+       /*for (ObstContainer::const_iterator it_obst = obstacles_->begin(); it_obst != obstacles_->end(); ++it_obst)
+       {
+         if ( (*it_obst)->checkCollision(sample, dist_to_obst)) // TODO really keep dist_to_obst here?
+         {
+           coll_free = false;
+           break;
+         }
+       }*/
+
+     } while (!coll_free && ros::ok());
 
     // Add new vertex
     HcGraphVertexType v = boost::add_vertex(graph_);
@@ -294,7 +296,6 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
   // Now add goal vertex
   HcGraphVertexType goal_vtx = boost::add_vertex(graph_); // goal vertex
   graph_[goal_vtx].pos = goal.position();
-
 
   // Insert Edges
   HcGraphVertexIterator it_i, end_i, it_j, end_j;
@@ -316,7 +317,7 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
 
       // Collision Check
       bool collision = false;
-      if(false)  // Obstacles check
+      if(true)  // Obstacles check
       {
       for (ObstContainer::const_iterator it_obst = hcp_->obstacles()->begin(); it_obst != hcp_->obstacles()->end(); ++it_obst)
       {
@@ -334,7 +335,6 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
       boost::add_edge(*it_i,*it_j,graph_);
     }
   }
-
   /// Find all paths between start and goal!
   std::vector<HcGraphVertexType> visited;
   visited.push_back(start_vtx);
