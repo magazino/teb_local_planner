@@ -329,9 +329,16 @@ public:
 
   /**
    * @brief Returns a shared pointer to the TEB related to the initial plan
+   * 
    * @return A non-empty shared ptr is returned if a match was found; Otherwise the shared ptr is empty.
    */
   TebOptimalPlannerPtr getInitialPlanTEB();
+
+  /**
+   * @brief Removes teb from the list of available plans
+   * @param teb Band to be removes
+   */
+  void removeTeb(TebOptimalPlannerPtr& teb);
 
   /**
    * @brief In case of multiple, internally stored, alternative trajectories, select the best one according to their cost values.
@@ -341,6 +348,12 @@ public:
    * @return Shared pointer to the best TebOptimalPlanner that contains the selected trajectory (TimedElasticBand).
    */
   TebOptimalPlannerPtr selectBestTeb();
+
+  /**
+   * @brief In case of empty best teb, updates it to a new one if plans are available.
+   * @return Shared pointer to the best TebOptimalPlanner that contains the selected trajectory (TimedElasticBand).
+   */
+  TebOptimalPlannerPtr findBestTeb();
 
   //@}
 
@@ -528,6 +541,8 @@ protected:
   ros::Time last_eq_class_switching_time_; //!< Store the time at which the equivalence class changed recently
 
   bool initialized_; //!< Keeps track about the correct initialization of this class
+
+  const geometry_msgs::Twist* start_vel_;  //!< Stores the lates start velocity of the plan
 
 
 

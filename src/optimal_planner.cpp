@@ -1231,19 +1231,26 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
     // (if obstacles are pushing two consecutive poses away, the center between two consecutive poses might coincide with the obstacle ;-)!
     if (i<look_ahead_idx)
     {
-      if ( (teb().Pose(i+1).position()-teb().Pose(i).position()).norm() > inscribed_radius)
+      double delta_rot = g2o::normalize_theta(teb().Pose(i+1).theta()-teb().Pose(i).theta());
+      double delta_dist = (teb().Pose(i+1).position()-teb().Pose(i).position()).norm();
+      if(fabs(delta_rot) > M_PI / 2.0 || delta_dist > 2.0 * inscribed_radius)
+      {
+        ROS_WARN_STREAM("Detected a discontinuity in the trajectory, delta rot: "<<delta_rot<<" delta dist: "<<delta_dist);
+        return false;
+      }
+      if (delta_dist > inscribed_radius || fabs(delta_rot) > M_PI / 4.0)
       {
         // check one more time
         PoseSE2 center = PoseSE2::average(teb().Pose(i), teb().Pose(i+1));
-        if ( costmap_model->footprintCost(center.x(), center.y(), center.theta(), footprint_spec, inscribed_radius, circumscribed_radius) == -1 ) {
-          if (visualization_) {
+        if ( costmap_model->footprintCost(center.x(), center.y(), center.theta(), footprint_spec, inscribed_radius, circumscribed_radius) == -1 )
+        {
+          if (visualization_) 
+          {
             visualization_->publishRobotFootprintModel(center, *robot_model_);
           }
           return false;
         }
-
       }
-
     }
   }
   return true;

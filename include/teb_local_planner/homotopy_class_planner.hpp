@@ -82,6 +82,7 @@ TebOptimalPlannerPtr HomotopyClassPlanner::addAndInitNewTeb(BidirIter path_start
     tebs_.push_back(candidate);
     return tebs_.back();
   }
+  
 
   // If the candidate constitutes no new equivalence class, return a null pointer
   return TebOptimalPlannerPtr();
