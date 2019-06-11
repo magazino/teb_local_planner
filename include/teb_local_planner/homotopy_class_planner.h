@@ -274,6 +274,22 @@ public:
    */
   void deleteTebDetours(double threshold=0.0);
 
+  /**
+   * @brief Checks if the orientation of the computed trajectories differs from that of the best plan of more than the
+   *  specified threshold and eventually deletes them.
+   * @param orient_threshold: Threshold paramter for allowed orientation changes in radians
+   * @param len_orientation_vector: length of the vector used to compute the start orientation
+   */
+  void deletePlansGoingBackwards(const double orient_threshold, const double len_orientation_vector);
+
+  /**
+   * @brief Given a plan, computes its start orientation using a vector of length > len_orientation_vector
+   * @param plan: Teb to be analyzed
+   * @param len_orientation_vector: length of the vector used to compute the start orientation
+   * @param orientation: computed start orientation
+   * @return: False if the vector for the orientation check could not be computed
+   */
+  bool computeStartOrientation(const TebOptimalPlannerPtr plan, const double len_orientation_vector, double& orientation);
 
   /**
    * @brief Add a new Teb to the internal trajectory container, if this teb constitutes a new equivalence class. Initialize it using a generic 2D reference path
@@ -337,8 +353,9 @@ public:
   /**
    * @brief Removes teb from the list of available plans
    * @param teb Band to be removes
+   * @return Iterator to the next valid teb if available, else to the end of the container.
    */
-  void removeTeb(TebOptimalPlannerPtr& teb);
+  TebOptPlannerContainer::iterator removeTeb(TebOptimalPlannerPtr& teb);
 
   /**
    * @brief In case of multiple, internally stored, alternative trajectories, select the best one according to their cost values.

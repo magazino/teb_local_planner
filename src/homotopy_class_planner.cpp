@@ -119,7 +119,7 @@ bool HomotopyClassPlanner::plan(const PoseSE2& start, const PoseSE2& goal, const
   // Optimize all trajectories in alternative homotopy classes
   optimizeAllTEBs(cfg_->optim.no_inner_iterations, cfg_->optim.no_outer_iterations);
   // Delete any detours
-  deleteTebDetours(-0.1);  // was 0.1
+  //deleteTebDetours(-0.1);  // was 0.1
   // Select which candidate (based on alternative homotopy classes) should be used
   selectBestTeb();
 
@@ -502,6 +502,67 @@ void HomotopyClassPlanner::deleteTebDetours(double threshold)
   }
 }
 
+void HomotopyClassPlanner::deletePlansGoingBackwards(const double orient_threshold,
+  const double len_orientation_vector)
+{
+    if (tebs_.size() < 2 || !best_teb_ || std::find(tebs_.begin(), tebs_.end(), best_teb_) == tebs_.end() ||
+      best_teb_->teb().sizePoses() < 2)
+    {
+      return;  // We don't know the current direction yet.
+    }
+    double current_movement_orientation;
+    if(!computeStartOrientation(best_teb_, len_orientation_vector, current_movement_orientation))
+      return;
+    for(auto it_teb = tebs_.begin(); it_teb != tebs_.end();)
+    {
+      if(*it_teb == best_teb_)  // The current plan, if feasible, should not be considered a detour
+      {
+        ++it_teb;
+        continue;
+      }
+      if((*it_teb)->teb().sizePoses() < 2)
+      {
+          ROS_WARN("Discarding a plan with less than 2 poses");
+          it_teb = removeTeb(*it_teb);
+          continue;
+      }
+      double plan_orientation;
+      if(!computeStartOrientation(*it_teb, len_orientation_vector, plan_orientation))
+      {
+        ROS_WARN("Failed to compute the start orientation for one of the tebs");
+        return;
+      }
+      if(fabs(g2o::normalize_theta(plan_orientation - current_movement_orientation)) > orient_threshold)
+      {
+          ROS_INFO("Discarding a plan detouring backwards");
+          it_teb = removeTeb(*it_teb);
+          continue;
+      }
+      ++it_teb;
+    }
+}
+
+bool HomotopyClassPlanner::computeStartOrientation(const TebOptimalPlannerPtr plan, const double len_orientation_vector,
+  double& orientation)
+{
+    VertexPose start_pose = plan->teb().Pose(0);
+    bool second_pose_found = false;
+    Eigen::Vector2d start_vector;
+    for(auto& pose : plan->teb().poses())
+    {
+      start_vector = start_pose.position() - pose->position();
+      if(start_vector.norm() > len_orientation_vector)
+      {
+        second_pose_found = true;
+        break;
+      }
+    }
+    if(!second_pose_found)  // The current plan is too short to make assumptions on the start orientation
+      return false;
+    orientation = std::atan2(start_vector[1], start_vector[0]);
+    return true;
+}
+
 TebOptimalPlannerPtr HomotopyClassPlanner::getInitialPlanTEB()
 {
     // first check stored teb object
@@ -713,16 +774,18 @@ bool HomotopyClassPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel
         ROS_INFO("Recovery failed :(");
     }*/
   }
+  deletePlansGoingBackwards(M_PI * 2.0 / 3.0, 0.4);
   return feasible;
 }
 
-void HomotopyClassPlanner::removeTeb(TebOptimalPlannerPtr& teb)
+TebOptPlannerContainer::iterator HomotopyClassPlanner::removeTeb(TebOptimalPlannerPtr& teb)
 {
   bool found = false;
+  TebOptPlannerContainer::iterator return_iterator = tebs_.end();
   if(equivalence_classes_.size() != tebs_.size())
   {
       ROS_ERROR("removeTeb: size of eq classes != size of tebs");
-      return;
+      return return_iterator;
   }
   auto it_eq_classes = equivalence_classes_.begin();
   for(auto it = tebs_.begin(); it != tebs_.end(); ++it)
@@ -730,7 +793,7 @@ void HomotopyClassPlanner::removeTeb(TebOptimalPlannerPtr& teb)
     if(*it == teb)
     {
       found = true;
-      tebs_.erase(it);
+      return_iterator = tebs_.erase(it);
       equivalence_classes_.erase(it_eq_classes);
       break;
     }
@@ -738,6 +801,7 @@ void HomotopyClassPlanner::removeTeb(TebOptimalPlannerPtr& teb)
   }
   if(!found)
     ROS_WARN("removeTeb failed to find the specified teb");
+  return return_iterator;
 }
 
 TebOptimalPlannerPtr HomotopyClassPlanner::findBestTeb()
