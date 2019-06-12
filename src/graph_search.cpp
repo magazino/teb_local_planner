@@ -191,7 +191,7 @@ void lrKeyPointGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, dou
         bool collision = false;
         for (ObstContainer::const_iterator it_obst = hcp_->obstacles()->begin(); it_obst != hcp_->obstacles()->end(); ++it_obst)
         {
-          if ( (*it_obst)->checkLineIntersection(graph_[*it_i].pos,graph_[*it_j].pos, 0.3 * dist_to_obst) )
+          if ( (*it_obst)->checkLineIntersection(graph_[*it_i].pos,graph_[*it_j].pos, 0.5*dist_to_obst) )
           {
             collision = true;
             break;
@@ -215,7 +215,8 @@ void lrKeyPointGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, dou
 
 
 
-void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, double dist_to_obst, double obstacle_heading_threshold, const geometry_msgs::Twist* start_velocity)
+void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, double dist_to_obst,
+  double obstacle_heading_threshold, const geometry_msgs::Twist* start_velocity)
 {
   // Clear existing graph and paths
   clearGraph();
@@ -318,7 +319,7 @@ void ProbRoadmapGraph::createGraph(const PoseSE2& start, const PoseSE2& goal, do
       bool collision = false;
       for (ObstContainer::const_iterator it_obst = hcp_->obstacles()->begin(); it_obst != hcp_->obstacles()->end(); ++it_obst)
       {
-        if ( (*it_obst)->checkLineIntersection(graph_[*it_i].pos,graph_[*it_j].pos, dist_to_obst / 2.0) )
+        if ( (*it_obst)->checkLineIntersection(graph_[*it_i].pos,graph_[*it_j].pos, dist_to_obst) )
         {
           collision = true;
           break;

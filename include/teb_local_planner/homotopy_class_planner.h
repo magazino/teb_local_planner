@@ -345,7 +345,6 @@ public:
 
   /**
    * @brief Returns a shared pointer to the TEB related to the initial plan
-   * 
    * @return A non-empty shared ptr is returned if a match was found; Otherwise the shared ptr is empty.
    */
   TebOptimalPlannerPtr getInitialPlanTEB();
@@ -559,9 +558,7 @@ protected:
 
   bool initialized_; //!< Keeps track about the correct initialization of this class
 
-  const geometry_msgs::Twist* start_vel_;  //!< Stores the lates start velocity of the plan
-
-
+  TebOptimalPlannerPtr last_best_teb_;  //!< Stores the lates valid plan
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
