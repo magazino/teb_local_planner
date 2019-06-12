@@ -85,29 +85,33 @@ bool FailureDetector::isOscillating() const
 bool FailureDetector::detect(double v_eps, double omega_eps)
 {
     oscillating_ = false;
-    
     if (buffer_.size() < buffer_.capacity()/2) // we start detecting only as soon as we have the buffer filled at least half
         return false;
-
     double n = (double)buffer_.size();
-            
     // compute mean for v and omega
     double v_mean=0;
     double omega_mean=0;
     int omega_zero_crossings = 0;
+    int linear_zero_crossings = 0;
     for (int i=0; i < n; ++i)
     {
         v_mean += buffer_[i].v;
         omega_mean += buffer_[i].omega;
-        if ( i>0 && g2o::sign(buffer_[i].omega) != g2o::sign(buffer_[i-1].omega) )
-            ++omega_zero_crossings;
+        if (i>0)
+        {
+            if(g2o::sign(buffer_[i].omega) != g2o::sign(buffer_[i-1].omega) )
+                ++omega_zero_crossings;
+            if(g2o::sign(buffer_[i].v) != g2o::sign(buffer_[i-1].v))
+                ++linear_zero_crossings;
+        }
     }
     v_mean /= n;
     omega_mean /= n;
 
-    if (std::abs(v_mean) < v_eps && std::abs(omega_mean) < omega_eps && omega_zero_crossings>1 ) 
+    if (std::abs(v_mean) < v_eps && std::abs(omega_mean) < omega_eps && (omega_zero_crossings > 1 || linear_zero_crossings > 1))
     {
         oscillating_ = true;
+        ROS_INFO_STREAM("Robot oscillating, omega zero crossings: "<<omega_zero_crossings<<" linear crossings: "<<linear_zero_crossings);
     }
 //     ROS_INFO_STREAM("v: " << std::abs(v_mean) << ", omega: " << std::abs(omega_mean) << ", zero crossings: " << omega_zero_crossings);
     return oscillating_;
