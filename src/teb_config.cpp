@@ -153,6 +153,7 @@ void TebConfig::loadRosParamFromNodeHandle(const ros::NodeHandle& nh)
   nh.param("oscillation_omega_eps", recovery.oscillation_omega_eps, recovery.oscillation_omega_eps);
   nh.param("oscillation_recovery_min_duration", recovery.oscillation_recovery_min_duration, recovery.oscillation_recovery_min_duration);
   nh.param("oscillation_filter_duration", recovery.oscillation_filter_duration, recovery.oscillation_filter_duration);
+  nh.param("timeout_permanent_oscillation", recovery.timeout_permanent_oscillation, recovery.timeout_permanent_oscillation);
 
   checkParameters();
   checkDeprecated(nh);

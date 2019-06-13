@@ -116,6 +116,8 @@ void TebLocalPlannerROS::initialize(std::string name, tf::TransformListener* tf,
 
     // init other variables
     tf_ = tf;
+    permanent_oscillation_ = false;
+    last_time_without_oscillation_ = ros::Time::now();
     costmap_ros_ = costmap_ros;
     costmap_ = costmap_ros_->getCostmap(); // locking should be done in MoveBase.
 
@@ -290,10 +292,10 @@ uint32_t TebLocalPlannerROS::computeVelocityCommands(const geometry_msgs::PoseSt
     return mbf_msgs::ExePathResult::SUCCESS;
   }
 
-
   // check if we should enter any backup mode and apply settings
   configureBackupModes(transformed_plan, goal_idx);
-
+  if(permanent_oscillation_)
+    return mbf_msgs::ExePathResult::OSCILLATION;
 
   // Return false if the transformed global plan is empty
   if (transformed_plan.empty())
@@ -955,10 +957,16 @@ void TebLocalPlannerROS::configureBackupModes(std::vector<geometry_msgs::PoseSta
                                cfg_.recovery.oscillation_v_eps, cfg_.recovery.oscillation_omega_eps);
 
         bool oscillating = failure_detector_.isOscillating();
+        if(!oscillating)
+        {
+          last_time_without_oscillation_ = ros::Time::now();
+          permanent_oscillation_ = false;
+        }
         bool recently_oscillated = (ros::Time::now()-time_last_oscillation_).toSec() < cfg_.recovery.oscillation_recovery_min_duration; // check if we have already detected an oscillation recently
 
         if (oscillating)
         {
+            permanent_oscillation_ = ros::Time::now() - last_time_without_oscillation_ > ros::Duration(cfg_.recovery.timeout_permanent_oscillation);
             if (!recently_oscillated)
             {
                 // save current turning direction

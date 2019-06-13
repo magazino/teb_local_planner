@@ -433,6 +433,7 @@ private:
   ros::Time time_last_oscillation_; //!< Store at which time stamp the last oscillation was detected
   RotType last_preferred_rotdir_; //!< Store recent preferred turning direction
   geometry_msgs::Twist last_cmd_; //!< Store the last control command generated in computeVelocityCommands()
+  ros::Time last_time_without_oscillation_; //!< Stores the last time at which the robot was oscillation-free
 
   std::vector<geometry_msgs::Point> footprint_spec_; //!< Store the footprint of the robot
   double robot_inscribed_radius_; //!< The radius of the inscribed circle of the robot (collision possible)
@@ -443,6 +444,7 @@ private:
 
   // flags
   bool initialized_; //!< Keeps track about the correct initialization of this class
+  bool permanent_oscillation_; //!< Set to True if the robot was detected as permanently stucked in an oscillation
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
