@@ -351,7 +351,7 @@ public:
 
   /**
    * @brief Removes teb from the list of available plans
-   * @param teb Band to be removes
+   * @param teb Band to be removed
    * @return Iterator to the next valid teb if available, else to the end of the container.
    */
   TebOptPlannerContainer::iterator removeTeb(TebOptimalPlannerPtr& teb);
