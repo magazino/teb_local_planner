@@ -116,15 +116,6 @@ public:
   }
 
   /**
-   * @brief Write values to an output stream
-   */    
-  virtual bool write(std::ostream& os) const
-  {
-    // TODO generic write
-    return os.good();
-  }
-
-  /**
    * @brief Assign the TebConfig class for parameters.
    * @param cfg TebConfig class
    */ 
@@ -194,24 +185,6 @@ public:
   {
     computeError();
     return _error;
-  }
-  
-  /**
-   * @brief Read values from input stream
-   */  	
-  virtual bool read(std::istream& is)
-  {
-    // TODO generic read
-    return true;
-  }
-
-  /**
-   * @brief Write values to an output stream
-   */    
-  virtual bool write(std::ostream& os) const
-  {
-    // TODO generic write
-    return os.good();
   }
 
   /**
@@ -298,24 +271,6 @@ public:
     return _error;
   }
   
-  /**
-   * @brief Read values from input stream
-   */  	
-  virtual bool read(std::istream& is)
-  {
-    // TODO generic read
-    return true;
-  }
-
-  /**
-   * @brief Write values to an output stream
-   */    
-  virtual bool write(std::ostream& os) const
-  {
-    // TODO generic write
-    return os.good();
-  }
-
   /**
    * @brief Assign the TebConfig class for parameters.
    * @param cfg TebConfig class

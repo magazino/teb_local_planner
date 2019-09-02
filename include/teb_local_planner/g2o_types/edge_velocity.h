@@ -81,6 +81,7 @@ public:
    */	      
   EdgeVelocity()
   {
+    _measurement = 0.;
     this->resize(3); // Since we derive from a g2o::BaseMultiEdge, set the desired number of vertices
   }
   
@@ -107,13 +108,14 @@ public:
     
 //     vel *= g2o::sign(deltaS[0]*cos(conf1->theta()) + deltaS[1]*sin(conf1->theta())); // consider direction
     vel *= fast_sigmoid( 100 * (deltaS.x()*cos(conf1->theta()) + deltaS.y()*sin(conf1->theta())) ); // consider direction
-    
+
     const double omega = angle_diff / deltaT->estimate();
-  
+
     _error[0] = penaltyBoundToInterval(vel, -cfg_->robot.max_vel_x_backwards, cfg_->robot.max_vel_x,cfg_->optim.penalty_epsilon);
     _error[1] = penaltyBoundToInterval(omega, cfg_->robot.max_vel_theta,cfg_->optim.penalty_epsilon);
 
-    ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeVelocity::computeError() _error[0]=%f _error[1]=%f\n",_error[0],_error[1]);
+    ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeVelocity::computeError() _error[0]=%f _error[1]=%f conf1=%d conf2=%d deltaT=%d\n",
+      _error[0],_error[1], conf1->id(), conf2->id(), deltaT->id());
   }
 
 #ifdef USE_ANALYTIC_JACOBI
@@ -190,6 +192,29 @@ public:
 #endif
 #endif
  
+  bool write(std::ostream& os) const
+  {
+    os << measurement() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    double aux = 0;
+    is >> aux;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
   
 public:
   
@@ -227,6 +252,7 @@ public:
    */       
   EdgeVelocityHolonomic()
   {
+    _measurement = 0.;
     this->resize(3); // Since we derive from a g2o::BaseMultiEdge, set the desired number of vertices
   }
   
@@ -260,6 +286,29 @@ public:
                    "EdgeVelocityHolonomic::computeError() _error[0]=%f _error[1]=%f _error[2]=%f\n",_error[0],_error[1],_error[2]);
   }
  
+  bool write(std::ostream& os) const
+  {
+    os << measurement() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    double aux = 0;
+    is >> aux;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
   
 public:
   

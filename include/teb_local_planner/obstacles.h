@@ -278,6 +278,17 @@ public:
   }
 
   //@}
+
+  virtual bool write(std::ostream& os) const
+  {
+    os << dynamic_ << " " << centroid_velocity_.x() << " " << centroid_velocity_.y() << " ";
+  }
+
+  virtual bool read(std::istream& is)
+  {
+    is >> dynamic_ >> centroid_velocity_.x() >> centroid_velocity_.y();
+    return true;
+  }
 	
 protected:
 	   
@@ -430,6 +441,20 @@ public:
     polygon.points.front().y = pos_.y();
     polygon.points.front().z = 0;
   }
+
+  virtual bool write(std::ostream& os) const
+  {
+    os << "POINT ";
+    Obstacle::write(os);
+    os << pos_.x() << " " << pos_.y() << " ";
+  }
+
+  virtual bool read(std::istream& is)
+  {
+    Obstacle::read(is);
+    is >> pos_.x() >> pos_.y();
+    return true;
+  }
       
 protected:
   
@@ -579,6 +604,20 @@ public:
     polygon.points.front().z = 0;
   }
 
+  virtual bool write(std::ostream& os) const
+  {
+    os << "CIRCLE ";
+    Obstacle::write(os);
+    os << pos_.x() << " " << pos_.y() << " " << radius_ << " ";
+  }
+
+  virtual bool read(std::istream& is)
+  {
+    Obstacle::read(is);
+    is >> pos_.x() >> pos_.y() >> radius_;
+    return true;
+  }
+
 protected:
 
   Eigen::Vector2d pos_; //!< Store the center position of the CircularObstacle
@@ -722,6 +761,24 @@ public:
     polygon.points.back().x = end_.x();
     polygon.points.back().y = end_.y();
     polygon.points.back().z = polygon.points.front().z = 0;
+  }
+
+  virtual bool write(std::ostream& os) const
+  {
+    os << "LINE ";
+    Obstacle::write(os);
+    os << start_.x() << " " << start_.y() << " ";
+    os << end_.x() << " " << end_.y() << " ";
+    os << centroid_.x() << " " << centroid_.y() << " ";
+  }
+
+  virtual bool read(std::istream& is)
+  {
+    Obstacle::read(is);
+    is >> start_.x() >> start_.y();
+    is >> end_.x() >> end_.y();
+    is >> centroid_.x() >> centroid_.y();
+    return true;
   }
   
 protected:
@@ -940,6 +997,32 @@ public:
     */
   int noVertices() const {return (int)vertices_.size();}
   
+  virtual bool write(std::ostream& os) const
+  {
+    os << "POLYGON ";
+    Obstacle::write(os);
+    os << vertices_.size() << " ";
+    for (const auto& p: vertices_)
+      os << p.x() << " " << p.y() << " ";
+    os << centroid_.x() << " " << centroid_.y() << " ";
+  }
+
+  virtual bool read(std::istream& is)
+  {
+    clearVertices();
+    Obstacle::read(is);
+    int num_vertices;
+    is >> num_vertices;
+    for (int i = 0; i < num_vertices; ++i)
+    {
+      Eigen::Vector2d p;
+      is >> p.x() >> p.y();
+      vertices_.push_back(p);
+    }
+    is >> centroid_.x() >> centroid_.y();
+    finalized_ = true;
+    return true;
+  }
   
   ///@}
       
@@ -960,6 +1043,24 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW  
 };
 
+namespace obstacle_factory
+{
+  static inline Obstacle* allocate(const std::string& name)
+  {
+    if (name == "POINT")
+      return new PointObstacle;
+    else if (name == "CIRCLE")
+      return new CircularObstacle;
+    else if (name == "LINE")
+      return new LineObstacle;
+    else if (name == "POLYGON")
+      return new PolygonObstacle;
+    else {
+      ROS_ERROR("Unknown obstacle type \"%s\"", name.c_str());
+      return nullptr;
+    }
+  }
+} // namespace obstacle_factory
 
 } // namespace teb_local_planner
 

@@ -135,6 +135,39 @@ public:
     _measurement = obstacle;
   }
 
+
+  bool write(std::ostream& os) const
+  {
+    measurement()->write(os);
+    robot_model_->write(os);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    std::string obstacle_token;
+    is >> obstacle_token;
+    Obstacle* obstacle = obstacle_factory::allocate(obstacle_token);
+    obstacle->read(is);
+    setMeasurement(obstacle);
+    std::string robot_token;
+    is >> robot_token;
+    BaseRobotFootprintModel* robot = robot_model_factory::allocate(robot_token);
+    robot->read(is);
+    robot_model_ = robot;
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
+
 protected:
   
   const BaseRobotFootprintModel* robot_model_; //!< Store pointer to robot_model

@@ -107,6 +107,30 @@ public:
     cfg_ = &cfg;
     _measurement = via_point;
   }
+
+  bool write(std::ostream& os) const
+  {
+    os << measurement()->x() << " " << measurement()->y() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    Eigen::Vector2d* aux = new Eigen::Vector2d(Eigen::Vector2d::Zero());
+    is >> aux->x() >> aux->y();
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
   
 public: 	
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

@@ -102,6 +102,29 @@ public:
   /** Prefer rotations to the right */
   void preferLeft() {_measurement = 1;}  
     
+  bool write(std::ostream& os) const
+  {
+    os << measurement() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    double aux = 0;
+    is >> aux;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
   
 public: 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

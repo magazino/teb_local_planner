@@ -222,7 +222,7 @@ public:
     */ 
   virtual bool write(std::ostream& os) const
   {
-    os << _estimate.x() << " " << _estimate.y() << _estimate.theta();
+    os << _estimate.x() << " " << _estimate.y() << " " << _estimate.theta();
     return os.good();
   }
 

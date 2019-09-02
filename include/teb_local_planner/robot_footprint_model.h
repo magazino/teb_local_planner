@@ -109,8 +109,10 @@ public:
    */
   virtual double getInscribedRadius() = 0;
 
-	
+  virtual bool write(std::ostream& os) const = 0;
 
+  virtual bool read(std::istream& is) = 0;
+  
 public:	
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
@@ -174,6 +176,17 @@ public:
    */
   virtual double getInscribedRadius() {return 0.0;}
 
+  bool write(std::ostream& os) const
+  {
+    os << "POINTROBOT ";
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    return true;
+  }
+
 };
 
 
@@ -185,6 +198,8 @@ class CircularRobotFootprint : public BaseRobotFootprintModel
 {
 public:
   
+  explicit CircularRobotFootprint() : radius_(0.) { }
+
   /**
     * @brief Default constructor of the abstract obstacle class
     * @param radius radius of the robot
@@ -251,6 +266,18 @@ public:
    */
   virtual double getInscribedRadius() {return radius_;}
 
+  bool write(std::ostream& os) const
+  {
+    os << "CIRLCEROBOT " << radius_ << " ";
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    is >> radius_;
+    return true;
+  }
+
 private:
     
   double radius_;
@@ -265,6 +292,9 @@ class TwoCirclesRobotFootprint : public BaseRobotFootprintModel
 {
 public:
   
+  explicit TwoCirclesRobotFootprint() 
+    : front_offset_(0.), front_radius_(0.), rear_offset_(0.), rear_radius_(0.) { }
+
   /**
     * @brief Default constructor of the abstract obstacle class
     * @param front_offset shift the center of the front circle along the robot orientation starting from the center at the rear axis (in meters)
@@ -369,6 +399,21 @@ public:
       return std::min(min_longitudinal, min_lateral);
   }
 
+  bool write(std::ostream& os) const
+  {
+    os << "TWOCIRCLEROBOT ";
+    os << front_offset_ << " " << front_radius_ << " ";
+    os << rear_offset_ << " " << rear_radius_ << " ";
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    is >> front_offset_ >> front_radius_;
+    is >> rear_offset_ >> rear_radius_;
+    return true;
+  }
+
 private:
     
   double front_offset_;
@@ -388,6 +433,10 @@ class LineRobotFootprint : public BaseRobotFootprintModel
 {
 public:
   
+  explicit LineRobotFootprint() :
+    line_start_(Eigen::Vector2d::Zero()), line_end_(Eigen::Vector2d::Zero())
+  {}
+
   /**
     * @brief Default constructor of the abstract obstacle class
     * @param line_start start coordinates (only x and y) of the line (w.r.t. robot center at (0,0))
@@ -504,6 +553,21 @@ public:
   virtual double getInscribedRadius() 
   {
       return 0.0; // lateral distance = 0.0
+  }
+
+  bool write(std::ostream& os) const
+  {
+    os << "LINEROBOT ";
+    os << line_start_.x() << " " << line_start_.y() << " ";
+    os << line_end_.x() << " " << line_end_.y() << " ";
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    is >> line_start_.x() >> line_start_.y();
+    is >> line_end_.x() >> line_end_.y();
+    return true;
   }
 
 private:
@@ -653,6 +717,29 @@ public:
      return std::min(min_dist, std::min(vertex_dist, edge_dist));
   }
 
+  bool write(std::ostream& os) const
+  {
+    os << "POLYGONROBOT ";
+    os << vertices_.size() << " ";
+    for (const auto& p: vertices_)
+      os << p.x() << " " << p.y() << " ";
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    vertices_.clear();
+    int num_vertices = 0;
+    is >> num_vertices;
+    for (int i = 0; i < num_vertices; ++i)
+    {
+      Eigen::Vector2d p;
+      is >> p.x() >> p.y();
+      vertices_.push_back(p);
+    }
+    return true;
+  }
+
 private:
     
   /**
@@ -675,7 +762,25 @@ private:
   
 };
 
-
+namespace robot_model_factory
+{
+  static inline BaseRobotFootprintModel* allocate(const std::string& name)
+  {
+    if (name == "POINTROBOT")
+      return new PointRobotFootprint;
+    else if (name == "CIRCLEROBOT")
+      return new CircularRobotFootprint;
+    else if (name == "TWOCIRCLEROBOT")
+      return new TwoCirclesRobotFootprint;
+    else if (name == "LINEROBOT")
+      return new LineRobotFootprint;
+    else
+    {
+      ROS_ERROR("Unknown robot model type \"%s\"", name.c_str());
+      return nullptr;
+    }
+  }
+} // end namespace robot_model_factory
 
 
 

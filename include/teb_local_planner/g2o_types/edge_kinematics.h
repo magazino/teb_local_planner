@@ -149,6 +149,30 @@ public:
   }
 #endif
 #endif
+
+  bool write(std::ostream& os) const
+  {
+    os << measurement() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    double aux = 0;
+    is >> aux;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
       
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW   
@@ -216,6 +240,30 @@ public:
     // This edge is not affected by the epsilon parameter, the user might add an exra margin to the min_turning_radius parameter.
     
     ROS_ASSERT_MSG(std::isfinite(_error[0]) && std::isfinite(_error[1]), "EdgeKinematicsCarlike::computeError() _error[0]=%f _error[1]=%f\n",_error[0],_error[1]);
+  }
+
+  bool write(std::ostream& os) const
+  {
+    os << measurement() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    double aux = 0;
+    is >> aux;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
   }
   
 public:

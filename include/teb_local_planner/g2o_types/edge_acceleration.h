@@ -84,6 +84,7 @@ public:
    */ 
   EdgeAcceleration()
   {
+    _measurement = 0.;
     this->resize(5);
   }
     
@@ -262,6 +263,29 @@ public:
 #endif
 #endif
 
+  bool write(std::ostream& os) const
+  {
+    os << measurement() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    double aux;
+    is >> aux;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
       
 public: 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -351,6 +375,33 @@ public:
   void setInitialVelocity(const geometry_msgs::Twist& vel_start)
   {
     _measurement = &vel_start;
+  }
+
+  bool write(std::ostream& os) const
+  {
+    const geometry_msgs::Twist* t = measurement();
+    os << t->linear.x << " " << t->linear.y << " " << t->linear.z << " ";
+    os << t->angular.x << " " << t->angular.y << " " << t->angular.z << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    geometry_msgs::Twist* aux = new geometry_msgs::Twist;
+    is >> aux->linear.x >> aux->linear.y >> aux->linear.z;
+    is >> aux->angular.x >> aux->angular.y >> aux->angular.z;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
   }
   
 public:       
@@ -444,6 +495,33 @@ public:
   {
     _measurement = &vel_goal;
   }
+
+  bool write(std::ostream& os) const
+  {
+    const geometry_msgs::Twist* t = measurement();
+    os << t->linear.x << " " << t->linear.y << " " << t->linear.z << " ";
+    os << t->angular.x << " " << t->angular.y << " " << t->angular.z << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    geometry_msgs::Twist* aux = new geometry_msgs::Twist;
+    is >> aux->linear.x >> aux->linear.y >> aux->linear.z;
+    is >> aux->angular.x >> aux->angular.y >> aux->angular.z;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
   
 public: 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -480,6 +558,7 @@ public:
    */    
   EdgeAccelerationHolonomic()
   {
+    _measurement = 0.;
     this->resize(5);
   }
     
@@ -535,6 +614,30 @@ public:
     ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeAcceleration::computeError() translational: _error[0]=%f\n",_error[0]);
     ROS_ASSERT_MSG(std::isfinite(_error[1]), "EdgeAcceleration::computeError() strafing: _error[1]=%f\n",_error[1]);
     ROS_ASSERT_MSG(std::isfinite(_error[2]), "EdgeAcceleration::computeError() rotational: _error[2]=%f\n",_error[2]);
+  }
+
+  bool write(std::ostream& os) const
+  {
+    os << measurement() << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    double aux;
+    is >> aux;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
   }
 
 public: 
@@ -626,6 +729,33 @@ public:
   void setInitialVelocity(const geometry_msgs::Twist& vel_start)
   {
     _measurement = &vel_start;
+  }
+
+  bool write(std::ostream& os) const
+  {
+    const geometry_msgs::Twist* t = measurement();
+    os << t->linear.x << " " << t->linear.y << " " << t->linear.z << " ";
+    os << t->angular.x << " " << t->angular.y << " " << t->angular.z << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    geometry_msgs::Twist* aux = new geometry_msgs::Twist;
+    is >> aux->linear.x >> aux->linear.y >> aux->linear.z;
+    is >> aux->angular.x >> aux->angular.y >> aux->angular.z;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
   }
         
 public:       
@@ -721,6 +851,32 @@ public:
     _measurement = &vel_goal;
   }
   
+  bool write(std::ostream& os) const
+  {
+    const geometry_msgs::Twist* t = measurement();
+    os << t->linear.x << " " << t->linear.y << " " << t->linear.z << " ";
+    os << t->angular.x << " " << t->angular.y << " " << t->angular.z << " ";
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+        os << " " << information()(i, j);
+    return os.good();
+  }
+
+  bool read(std::istream& is)
+  {
+    geometry_msgs::Twist* aux = new geometry_msgs::Twist;
+    is >> aux->linear.x >> aux->linear.y >> aux->linear.z;
+    is >> aux->angular.x >> aux->angular.y >> aux->angular.z;
+    setMeasurement(aux);
+    for (int i = 0; i < information().rows(); ++i)
+      for (int j = i; j < information().cols(); ++j)
+      {
+        is >> information()(i, j);
+        if (i != j)
+          information()(j, i) = information()(i, j);
+      }
+    return true;
+  }
 
 public: 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
