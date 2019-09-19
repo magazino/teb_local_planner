@@ -215,7 +215,12 @@ bool TebOptimalPlanner::optimizeTEB(int iterations_innerloop, int iterations_out
     
     weight_multiplier *= cfg_->optim.weight_adapt_factor;
   }
-
+  if (cfg_->trajectory.teb_autosize)
+  {
+    //  Guarantees a dt between the poses close to the reference dt even if the optimization failed to regulate it
+    teb_.autoResize(cfg_->trajectory.dt_ref, cfg_->trajectory.dt_hysteresis,
+      cfg_->trajectory.min_samples, cfg_->trajectory.max_samples, false);
+  }
   return true;
 }
 
