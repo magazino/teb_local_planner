@@ -218,8 +218,8 @@ bool TebOptimalPlanner::optimizeTEB(int iterations_innerloop, int iterations_out
   if (cfg_->trajectory.teb_autosize)
   {
     //  Guarantees a dt between the poses close to the reference dt even if the optimization failed to regulate it
-    teb_.autoResize(cfg_->trajectory.dt_ref, cfg_->trajectory.dt_hysteresis,
-      cfg_->trajectory.min_samples, cfg_->trajectory.max_samples, false);
+    //teb_.autoResize(cfg_->trajectory.dt_ref, cfg_->trajectory.dt_hysteresis,
+    //  cfg_->trajectory.min_samples, cfg_->trajectory.max_samples, false);
   }
   return true;
 }
@@ -1100,21 +1100,68 @@ bool TebOptimalPlanner::getVelocityCommand(double& vx, double& vy, double& omega
     return false;
   }
   look_ahead_poses = std::max(1, std::min(look_ahead_poses, teb_.sizePoses() - 1));
-  double dt = 0.0;
-  for(int counter = 0; counter < look_ahead_poses; ++counter)
-    dt += teb_.TimeDiff(counter);
-  if (dt<=0)
-  {	
-    ROS_ERROR("TebOptimalPlanner::getVelocityCommand() - timediff<=0 is invalid!");
-    vx = 0;
-    vy = 0;
-    omega = 0;
-    return false;
-  }
-	  
-  // Get velocity from the first two configurations
-  extractVelocity(teb_.Pose(0), teb_.Pose(look_ahead_poses), dt, vx, vy, omega);
-  return true;
+  return customTrajecotryFollower(vx, vy, omega, look_ahead_poses);
+}
+
+bool TebOptimalPlanner::customTrajecotryFollower(double& vx, double& vy, double& omega, int look_ahead_poses) const
+{
+    int control_look_ahead = look_ahead_poses;
+    bool trajectory_turning = trajectoryIsTurning(look_ahead_poses);
+    if(trajectory_turning)
+    {
+        control_look_ahead = 1;  // While facing a turn, looking ahead might result in cutting trajectories
+    }
+    double dt = 0.0;
+    for(int counter = 0; counter < control_look_ahead; ++counter)
+    {
+        dt += teb_.TimeDiff(counter);
+        if(dt > 0.1 * control_look_ahead)  // 0.1 Reference dt
+        {
+            control_look_ahead = counter + 1;
+            break;
+        }
+    }
+    if (dt<=0)
+    {
+        ROS_ERROR("TebOptimalPlanner::getVelocityCommand() - timediff<=0 is invalid!");
+        vx = 0;
+        vy = 0;
+        omega = 0;
+        return false;
+    }
+    extractVelocity(teb_.Pose(0), teb_.Pose(control_look_ahead), dt, vx, vy, omega);
+    if(trajectory_turning && fabs(vx) > 0.1 && inPlaceRotation(look_ahead_poses))
+    {
+        // Ensuring that the center of in-place rotations is reached before allowing a strong rotation
+        if(omega > 0.04)
+            omega = 0.04;
+        if(omega < -0.04)
+            omega = -0.04;
+    }
+    return true;
+}
+
+bool TebOptimalPlanner::trajectoryIsTurning(int look_ahead_poses) const
+{
+    return (look_ahead_poses > 1 &&
+        g2o::normalize_theta(teb_.Pose(1).theta() - teb_.Pose(look_ahead_poses).theta()) > 0.1);
+}
+
+bool TebOptimalPlanner::inPlaceRotation(int look_ahead_poses) const
+{
+    if(look_ahead_poses < teb_.sizePoses() - 3)
+    {
+        for(size_t counter = 2; counter <= look_ahead_poses + 2; ++counter)
+        {
+            double distance = (teb_.Pose(1).position() - teb_.Pose(counter).position()).norm();
+            if(distance > 0.1)
+                return false;
+        }
+    }
+    else
+        return false;
+    ROS_INFO("Starting in-place rotation");
+    return true;
 }
 
 void TebOptimalPlanner::getVelocityProfile(std::vector<geometry_msgs::Twist>& velocity_profile) const

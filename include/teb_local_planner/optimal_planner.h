@@ -215,7 +215,12 @@ public:
    * @return \c true if command is valid, \c false otherwise
    */
   virtual bool getVelocityCommand(double& vx, double& vy, double& omega, int look_ahead_poses) const;
+
+  bool customTrajecotryFollower(double& vx, double& vy, double& omega, int look_ahead_poses) const;
+
+  bool trajectoryIsTurning(int look_ahead_poses) const;
   
+  bool inPlaceRotation(int look_ahead_poses) const;
   
   /**
    * @brief Optimize a previously initialized trajectory (actual TEB optimization loop).
