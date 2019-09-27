@@ -1200,7 +1200,8 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
   
   for (int i=0; i <= look_ahead_idx; ++i)
   {           
-    if ( costmap_model->footprintCost(teb().Pose(i).x(), teb().Pose(i).y(), teb().Pose(i).theta(), footprint_spec, inscribed_radius, circumscribed_radius) < 0 )
+    if (i != 0 && costmap_model->footprintCost(teb().Pose(i).x(), teb().Pose(i).y(), teb().Pose(i).theta(),
+      footprint_spec, inscribed_radius, circumscribed_radius) < 0 )
     {
       if (visualization_)
       {
@@ -1216,10 +1217,11 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
       double delta_rot = g2o::normalize_theta(g2o::normalize_theta(teb().Pose(i+1).theta()) -
                                               g2o::normalize_theta(teb().Pose(i).theta()));
       Eigen::Vector2d delta_dist = teb().Pose(i+1).position()-teb().Pose(i).position();
-      if(fabs(delta_rot) > cfg_->trajectory.min_resolution_collision_check_angular || delta_dist.norm() > inscribed_radius)
+      double collision_resolution = i == 0 ? 0.04 : inscribed_radius;  // Checking with higher density the poses close to the start position
+      if(fabs(delta_rot) > cfg_->trajectory.min_resolution_collision_check_angular || delta_dist.norm() > collision_resolution)
       {
         int n_additional_samples = std::max(std::ceil(fabs(delta_rot) / cfg_->trajectory.min_resolution_collision_check_angular), 
-                                            std::ceil(delta_dist.norm() / inscribed_radius)) - 1;
+                                            std::ceil(delta_dist.norm() / collision_resolution)) - 1;
         PoseSE2 intermediate_pose = teb().Pose(i);
         for(int step = 0; step < n_additional_samples; ++step)
         {
