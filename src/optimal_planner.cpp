@@ -1224,7 +1224,8 @@ bool TebOptimalPlanner::isTrajectoryFeasible(base_local_planner::CostmapModel* c
       double delta_rot = g2o::normalize_theta(g2o::normalize_theta(teb().Pose(i+1).theta()) -
                                               g2o::normalize_theta(teb().Pose(i).theta()));
       Eigen::Vector2d delta_dist = teb().Pose(i+1).position()-teb().Pose(i).position();
-      double collision_resolution = i == 0 ? 0.04 : inscribed_radius;  // Checking with higher density the poses close to the start position
+      // Checking with higher density the poses close to the start position
+      double collision_resolution = i == 0 ? cfg_->trajectory.min_resolution_collision_check_first_sample : inscribed_radius;
       if(fabs(delta_rot) > cfg_->trajectory.min_resolution_collision_check_angular || delta_dist.norm() > collision_resolution)
       {
         int n_additional_samples = std::max(std::ceil(fabs(delta_rot) / cfg_->trajectory.min_resolution_collision_check_angular), 
