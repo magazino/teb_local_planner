@@ -581,6 +581,15 @@ protected:
    * @see optimizeGraph
    */
   void AddTEBVertices();
+
+  /**
+   * @brief Add all the relevant parameters for the optimzer
+   * 
+   * Those parameters for the optimization are values that do not change during the course
+   * of optimizing the TEB - like obstacles, the robot model, and the general TEB
+   * configuration.
+   */
+  void AddTEBParameters();
   
   /**
    * @brief Add all edges (local cost functions) for limiting the translational and angular velocity.
@@ -706,6 +715,7 @@ protected:
   boost::shared_ptr<g2o::SparseOptimizer> optimizer_; //!< g2o optimizer for trajectory optimization
   std::pair<bool, geometry_msgs::Twist> vel_start_; //!< Store the initial velocity at the start pose
   std::pair<bool, geometry_msgs::Twist> vel_goal_; //!< Store the final velocity at the goal pose
+  std::vector<int> parameter_ids_; //! Store the parameter IDs
 
   bool initialized_; //!< Keeps track about the correct initialization of this class
   bool optimized_; //!< This variable is \c true as long as the last optimization has been completed successful

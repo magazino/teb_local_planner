@@ -68,23 +68,33 @@ namespace teb_local_planner
  * @remarks Do not forget to call setTebConfig(), setVertexIdx() and 
  * @warning Experimental
  */  
-class EdgeDynamicObstacle : public BaseTebUnaryEdge<2, const Obstacle*, VertexPose>
+class EdgeDynamicObstacle : public BaseTebUnaryEdge<2, double, VertexPose>
 {
 public:
   
   /**
    * @brief Construct edge.
    */    
-  EdgeDynamicObstacle() : t_(0)
+  EdgeDynamicObstacle() : obstacle_(nullptr), robot_model_(nullptr), t_(0)
   {
+    int paramOffset = numParameters();
+    resizeParameters(paramOffset + 2);
+    installParameter(obstacle_, paramOffset++);
+    installParameter(robot_model_, paramOffset++);
+    _measurement = 0.;
   }
   
   /**
    * @brief Construct edge and specify the time for its associated pose (neccessary for computeError).
    * @param t_ Estimated time until current pose is reached
    */      
-  EdgeDynamicObstacle(double t) : t_(t)
+  explicit EdgeDynamicObstacle(double t) : obstacle_(nullptr), robot_model_(nullptr), t_(t)
   {
+    int paramOffset = numParameters();
+    resizeParameters(paramOffset + 2);
+    installParameter(obstacle_, paramOffset++);
+    installParameter(robot_model_, paramOffset++);
+    _measurement = 0.;
   }
   
   /**
@@ -92,10 +102,10 @@ public:
    */   
   void computeError()
   {
-    ROS_ASSERT_MSG(cfg_ && _measurement && robot_model_, "You must call setTebConfig(), setObstacle() and setRobotModel() on EdgeDynamicObstacle()");
+    ROS_ASSERT_MSG(cfg_ && _measurement && robot_model_, "You must install the parameters for EdgeDynamicObstacle()");
     const VertexPose* bandpt = static_cast<const VertexPose*>(_vertices[0]);
     
-    double dist = robot_model_->estimateSpatioTemporalDistance(bandpt->pose(), _measurement, t_);
+    double dist = robot_model_->estimateSpatioTemporalDistance(bandpt->pose(), obstacle_, t_);
 
     _error[0] = penaltyBoundFromBelow(dist, cfg_->obstacles.min_obstacle_dist, cfg_->optim.penalty_epsilon);
     _error[1] = penaltyBoundFromBelow(dist, cfg_->obstacles.dynamic_obstacle_inflation_dist, 0.0);
@@ -103,26 +113,7 @@ public:
     ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeDynamicObstacle::computeError() _error[0]=%f\n",_error[0]);
   }
   
-  
-  /**
-   * @brief Set Obstacle for the underlying cost function
-   * @param obstacle Const pointer to an Obstacle or derived Obstacle
-   */     
-  void setObstacle(const Obstacle* obstacle)
-  {
-    _measurement = obstacle;
-  }
-  
-  /**
-   * @brief Set pointer to the robot model
-   * @param robot_model Robot model required for distance calculation
-   */
-  void setRobotModel(const BaseRobotFootprintModel* robot_model)
-  {
-    robot_model_ = robot_model;
-  }
-
-  /**
+    /**
    * @brief Set all parameters at once
    * @param cfg TebConfig class
    * @param robot_model Robot model required for distance calculation
@@ -130,16 +121,20 @@ public:
    */
   void setParameters(const TebConfig& cfg, const BaseRobotFootprintModel* robot_model, const Obstacle* obstacle)
   {
-    cfg_ = &cfg;
-    robot_model_ = robot_model;
-    _measurement = obstacle;
+    _parameterTypes[0] = typeid(&cfg).name();
+    _parameterTypes[1] = typeid(obstacle).name();
+    _parameterTypes[2] = typeid(robot_model).name();
+    setParameterId(1, obstacle->id());
+    setParameterId(2, robot_model->id());
   }
-
 
   bool write(std::ostream& os) const
   {
-    measurement()->write(os);
-    robot_model_->write(os);
+    os << cfg_->id() << " ";
+    os << obstacle_->id() << " ";
+    os << robot_model_->id() << " ";
+    os << t_ << " ";
+    os << measurement() << " ";
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
         os << " " << information()(i, j);
@@ -148,16 +143,19 @@ public:
 
   bool read(std::istream& is)
   {
-    std::string obstacle_token;
-    is >> obstacle_token;
-    Obstacle* obstacle = obstacle_factory::allocate(obstacle_token);
-    obstacle->read(is);
-    setMeasurement(obstacle);
-    std::string robot_token;
-    is >> robot_token;
-    BaseRobotFootprintModel* robot = robot_model_factory::allocate(robot_token);
-    robot->read(is);
-    robot_model_ = robot;
+    int paramOffset = 0;
+    int paramId;
+    is >> paramId; // cfg
+    setParameterId(paramOffset++, paramId);
+    is >> paramId; // obstacle
+    setParameterId(paramOffset++, paramId);
+    is >> paramId; // robot model
+    setParameterId(paramOffset++, paramId);
+
+    is >> t_;
+    double meas;
+    is >> meas;
+    setMeasurement(meas);
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
       {
@@ -170,7 +168,8 @@ public:
 
 protected:
   
-  const BaseRobotFootprintModel* robot_model_; //!< Store pointer to robot_model
+  Obstacle* obstacle_;  //! store the pointer to the obstacle
+  BaseRobotFootprintModel* robot_model_; //!< Store pointer to robot_model
   double t_; //!< Estimated time until current pose is reached
   
 public: 

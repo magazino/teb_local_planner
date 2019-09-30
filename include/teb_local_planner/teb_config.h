@@ -46,6 +46,8 @@
 
 #include <teb_local_planner/TebLocalPlannerReconfigureConfig.h>
 
+#include <g2o/core/parameter.h>
+
 
 // Definitions
 #define USE_ANALYTIC_JACOBI // if available for a specific edge, use analytic jacobi
@@ -58,7 +60,7 @@ namespace teb_local_planner
  * @class TebConfig
  * @brief Config class for the teb_local_planner and its components.
  */
-class TebConfig
+class TebConfig : public g2o::Parameter
 {
 public:
 
@@ -225,6 +227,7 @@ public:
   */
   TebConfig()
   {
+    setId(0);
 
     odom_topic = "odom";
     map_frame = "odom";
@@ -391,6 +394,9 @@ public:
    * @brief Return the internal config mutex
    */
   boost::mutex& configMutex() {return config_mutex_;}
+
+  bool read(std::istream& is);
+  bool write(std::ostream& os) const;
 
 private:
   boost::mutex config_mutex_; //!< Mutex for config accesses and changes

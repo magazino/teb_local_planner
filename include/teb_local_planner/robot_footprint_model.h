@@ -44,6 +44,8 @@
 #include <teb_local_planner/obstacles.h>
 #include <visualization_msgs/Marker.h>
 
+#include <g2o/core/parameter.h>
+
 namespace teb_local_planner
 {
 
@@ -55,7 +57,7 @@ namespace teb_local_planner
  * taking the navigation stack footprint into account might be
  * inefficient. The footprint is only used for checking feasibility.
  */
-class BaseRobotFootprintModel
+class BaseRobotFootprintModel : public g2o::Parameter
 {
 public:
   
@@ -108,10 +110,6 @@ public:
    * @return inscribed radius
    */
   virtual double getInscribedRadius() = 0;
-
-  virtual bool write(std::ostream& os) const = 0;
-
-  virtual bool read(std::istream& is) = 0;
   
 public:	
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -178,7 +176,6 @@ public:
 
   bool write(std::ostream& os) const
   {
-    os << "POINTROBOT ";
     return os.good();
   }
 
@@ -268,7 +265,7 @@ public:
 
   bool write(std::ostream& os) const
   {
-    os << "CIRLCEROBOT " << radius_ << " ";
+    os << radius_ << " ";
     return os.good();
   }
 
@@ -401,7 +398,6 @@ public:
 
   bool write(std::ostream& os) const
   {
-    os << "TWOCIRCLEROBOT ";
     os << front_offset_ << " " << front_radius_ << " ";
     os << rear_offset_ << " " << rear_radius_ << " ";
     return os.good();
@@ -557,7 +553,6 @@ public:
 
   bool write(std::ostream& os) const
   {
-    os << "LINEROBOT ";
     os << line_start_.x() << " " << line_start_.y() << " ";
     os << line_end_.x() << " " << line_end_.y() << " ";
     return os.good();
@@ -606,7 +601,10 @@ class PolygonRobotFootprint : public BaseRobotFootprintModel
 {
 public:
   
-  
+  /**
+    * @brief Default constructor of the abstract obstacle class
+    */
+  PolygonRobotFootprint() {}
   
   /**
     * @brief Default constructor of the abstract obstacle class
@@ -719,7 +717,6 @@ public:
 
   bool write(std::ostream& os) const
   {
-    os << "POLYGONROBOT ";
     os << vertices_.size() << " ";
     for (const auto& p: vertices_)
       os << p.x() << " " << p.y() << " ";
@@ -761,28 +758,6 @@ private:
   Point2dContainer vertices_;
   
 };
-
-namespace robot_model_factory
-{
-  static inline BaseRobotFootprintModel* allocate(const std::string& name)
-  {
-    if (name == "POINTROBOT")
-      return new PointRobotFootprint;
-    else if (name == "CIRCLEROBOT")
-      return new CircularRobotFootprint;
-    else if (name == "TWOCIRCLEROBOT")
-      return new TwoCirclesRobotFootprint;
-    else if (name == "LINEROBOT")
-      return new LineRobotFootprint;
-    else
-    {
-      ROS_ERROR("Unknown robot model type \"%s\"", name.c_str());
-      return nullptr;
-    }
-  }
-} // end namespace robot_model_factory
-
-
 
 } // namespace teb_local_planner
 

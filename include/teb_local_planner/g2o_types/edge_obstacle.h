@@ -67,16 +67,20 @@ namespace teb_local_planner
  * @see TebOptimalPlanner::AddEdgesObstacles, TebOptimalPlanner::EdgeInflatedObstacle
  * @remarks Do not forget to call setTebConfig() and setObstacle()
  */     
-class EdgeObstacle : public BaseTebUnaryEdge<1, const Obstacle*, VertexPose>
+class EdgeObstacle : public BaseTebUnaryEdge<1, double, VertexPose>
 {
 public:
     
   /**
    * @brief Construct edge.
    */    
-  EdgeObstacle() 
+  EdgeObstacle() : obstacle_(nullptr), robot_model_(nullptr)
   {
-    _measurement = NULL;
+    int paramOffset = numParameters();
+    resizeParameters(paramOffset + 2);
+    installParameter(obstacle_, paramOffset++);
+    installParameter(robot_model_, paramOffset++);
+    _measurement = 0.;
   }
  
   /**
@@ -84,10 +88,10 @@ public:
    */    
   void computeError()
   {
-    ROS_ASSERT_MSG(cfg_ && _measurement && robot_model_, "You must call setTebConfig(), setObstacle() and setRobotModel() on EdgeObstacle()");
+    ROS_ASSERT_MSG(cfg_ && obstacle_ && robot_model_, "You must install the parameters for EdgeObstacle()");
     const VertexPose* bandpt = static_cast<const VertexPose*>(_vertices[0]);
 
-    double dist = robot_model_->calculateDistance(bandpt->pose(), _measurement);
+    double dist = robot_model_->calculateDistance(bandpt->pose(), obstacle_);
 
     // Original obstacle cost.
     _error[0] = penaltyBoundFromBelow(dist, cfg_->obstacles.min_obstacle_dist, cfg_->optim.penalty_epsilon);
@@ -150,25 +154,7 @@ public:
 #endif
 #endif
   
-  /**
-   * @brief Set pointer to associated obstacle for the underlying cost function 
-   * @param obstacle 2D position vector containing the position of the obstacle
-   */ 
-  void setObstacle(const Obstacle* obstacle)
-  {
-    _measurement = obstacle;
-  }
-    
-  /**
-   * @brief Set pointer to the robot model 
-   * @param robot_model Robot model required for distance calculation
-   */ 
-  void setRobotModel(const BaseRobotFootprintModel* robot_model)
-  {
-    robot_model_ = robot_model;
-  }
-    
-  /**
+    /**
    * @brief Set all parameters at once
    * @param cfg TebConfig class
    * @param robot_model Robot model required for distance calculation
@@ -176,15 +162,19 @@ public:
    */ 
   void setParameters(const TebConfig& cfg, const BaseRobotFootprintModel* robot_model, const Obstacle* obstacle)
   {
-    cfg_ = &cfg;
-    robot_model_ = robot_model;
-    _measurement = obstacle;
+    _parameterTypes[0] = typeid(cfg).name();
+    _parameterTypes[1] = typeid(*obstacle).name();
+    _parameterTypes[2] = typeid(*robot_model).name();    
+    setParameterId(1, obstacle->id());
+    setParameterId(2, robot_model->id());
   }
 
   bool write(std::ostream& os) const
   {
-    measurement()->write(os);
-    robot_model_->write(os);
+    os << cfg_->id() << " ";
+    os << obstacle_->id() << " ";
+    os << robot_model_->id() << " ";
+    os << measurement() << " ";
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
         os << " " << information()(i, j);
@@ -193,16 +183,18 @@ public:
 
   bool read(std::istream& is)
   {
-    std::string obstacle_token;
-    is >> obstacle_token;
-    Obstacle* obstacle = obstacle_factory::allocate(obstacle_token);
-    obstacle->read(is);
-    setMeasurement(obstacle);
-    std::string robot_token;
-    is >> robot_token;
-    BaseRobotFootprintModel* robot = robot_model_factory::allocate(robot_token);
-    robot->read(is);
-    robot_model_ = robot;
+    int paramOffset = 0;
+    int paramId;
+    is >> paramId; // cfg
+    setParameterId(paramOffset++, paramId);
+    is >> paramId; // obstacle
+    setParameterId(paramOffset++, paramId);
+    is >> paramId; // robot model
+    setParameterId(paramOffset++, paramId);
+
+    double meas;
+    is >> meas;
+    setMeasurement(meas);
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
       {
@@ -212,10 +204,11 @@ public:
       }
     return true;
   }
-  
+
 protected:
 
-  const BaseRobotFootprintModel* robot_model_; //!< Store pointer to robot_model
+  Obstacle* obstacle_;  //! store the pointer to the obstacle
+  BaseRobotFootprintModel* robot_model_; //!< Store pointer to robot_model
   
 public: 	
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -238,7 +231,7 @@ public:
  * @see TebOptimalPlanner::AddEdgesObstacles, TebOptimalPlanner::EdgeObstacle
  * @remarks Do not forget to call setTebConfig() and setObstacle()
  */     
-class EdgeInflatedObstacle : public BaseTebUnaryEdge<2, const Obstacle*, VertexPose>
+class EdgeInflatedObstacle : public BaseTebUnaryEdge<2, double, VertexPose>
 {
 public:
     
@@ -247,7 +240,11 @@ public:
    */    
   EdgeInflatedObstacle() 
   {
-    _measurement = NULL;
+    int paramOffset = numParameters();
+    resizeParameters(paramOffset + 2);
+    installParameter(obstacle_, paramOffset++);
+    installParameter(robot_model_, paramOffset++);
+    _measurement = 0.;
   }
  
   /**
@@ -255,10 +252,10 @@ public:
    */    
   void computeError()
   {
-    ROS_ASSERT_MSG(cfg_ && _measurement && robot_model_, "You must call setTebConfig(), setObstacle() and setRobotModel() on EdgeInflatedObstacle()");
+    ROS_ASSERT_MSG(cfg_ && obstacle_ && robot_model_, "You must install the parameters for EdgeInflatedObstacle()");
     const VertexPose* bandpt = static_cast<const VertexPose*>(_vertices[0]);
 
-    double dist = robot_model_->calculateDistance(bandpt->pose(), _measurement);
+    double dist = robot_model_->calculateDistance(bandpt->pose(), obstacle_);
 
     // Original "straight line" obstacle cost. The max possible value
     // before weighting is min_obstacle_dist
@@ -282,24 +279,6 @@ public:
   }
 
   /**
-   * @brief Set pointer to associated obstacle for the underlying cost function 
-   * @param obstacle 2D position vector containing the position of the obstacle
-   */ 
-  void setObstacle(const Obstacle* obstacle)
-  {
-    _measurement = obstacle;
-  }
-    
-  /**
-   * @brief Set pointer to the robot model 
-   * @param robot_model Robot model required for distance calculation
-   */ 
-  void setRobotModel(const BaseRobotFootprintModel* robot_model)
-  {
-    robot_model_ = robot_model;
-  }
-    
-  /**
    * @brief Set all parameters at once
    * @param cfg TebConfig class
    * @param robot_model Robot model required for distance calculation
@@ -307,15 +286,19 @@ public:
    */ 
   void setParameters(const TebConfig& cfg, const BaseRobotFootprintModel* robot_model, const Obstacle* obstacle)
   {
-    cfg_ = &cfg;
-    robot_model_ = robot_model;
-    _measurement = obstacle;
+    _parameterTypes[0] = typeid(cfg).name();
+    _parameterTypes[1] = typeid(*obstacle).name();
+    _parameterTypes[2] = typeid(*robot_model).name();
+    setParameterId(1, obstacle->id());
+    setParameterId(2, robot_model->id());
   }
 
   bool write(std::ostream& os) const
   {
-    measurement()->write(os);
-    robot_model_->write(os);
+    os << cfg_->id() << " ";
+    os << obstacle_->id() << " ";
+    os << robot_model_->id() << " ";
+    os << measurement() << " ";
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
         os << " " << information()(i, j);
@@ -324,16 +307,18 @@ public:
 
   bool read(std::istream& is)
   {
-    std::string obstacle_token;
-    is >> obstacle_token;
-    Obstacle* obstacle = obstacle_factory::allocate(obstacle_token);
-    obstacle->read(is);
-    setMeasurement(obstacle);
-    std::string robot_token;
-    is >> robot_token;
-    BaseRobotFootprintModel* robot = robot_model_factory::allocate(robot_token);
-    robot->read(is);
-    robot_model_ = robot;
+    int paramOffset = 0;
+    int paramId;
+    is >> paramId; // cfg
+    setParameterId(paramOffset++, paramId);
+    is >> paramId; // obstacle
+    setParameterId(paramOffset++, paramId);
+    is >> paramId; // robot model
+    setParameterId(paramOffset++, paramId);
+
+    double meas;
+    is >> meas;
+    setMeasurement(meas);
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
       {
@@ -346,7 +331,8 @@ public:
   
 protected:
 
-  const BaseRobotFootprintModel* robot_model_; //!< Store pointer to robot_model
+  Obstacle* obstacle_;  //! store the pointer to the obstacle
+  BaseRobotFootprintModel* robot_model_; //!< Store pointer to robot_model
   
 public:         
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

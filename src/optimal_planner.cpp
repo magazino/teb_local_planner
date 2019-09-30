@@ -140,6 +140,19 @@ void TebOptimalPlanner::registerG2OTypes()
   factory->registerType("EDGE_DYNAMIC_OBSTACLE", new g2o::HyperGraphElementCreator<EdgeDynamicObstacle>);
   factory->registerType("EDGE_VIA_POINT", new g2o::HyperGraphElementCreator<EdgeViaPoint>);
   factory->registerType("EDGE_PREFER_ROTDIR", new g2o::HyperGraphElementCreator<EdgePreferRotDir>);
+
+  factory->registerType("PARAM_TEB_CONFIG", new g2o::HyperGraphElementCreator<TebConfig>);
+
+  factory->registerType("PARAM_POINT_OBSTACLE", new g2o::HyperGraphElementCreator<PointObstacle>);
+  factory->registerType("PARAM_CIRCULAR_OBSTACLE", new g2o::HyperGraphElementCreator<CircularObstacle>);
+  factory->registerType("PARAM_LINE_OBSTACLE", new g2o::HyperGraphElementCreator<LineObstacle>);
+  factory->registerType("PARAM_POLYGON_OBSTACLE", new g2o::HyperGraphElementCreator<PolygonObstacle>);
+
+  factory->registerType("PARAM_POINT_ROBOT", new g2o::HyperGraphElementCreator<PointRobotFootprint>);
+  factory->registerType("PARAM_CIRCLE_ROBOT", new g2o::HyperGraphElementCreator<CircularRobotFootprint>);
+  factory->registerType("PARAM_TWOCIRCLE_ROBOT", new g2o::HyperGraphElementCreator<TwoCirclesRobotFootprint>);
+  factory->registerType("PARAM_LINE_ROBOT", new g2o::HyperGraphElementCreator<LineRobotFootprint>);
+  factory->registerType("PARAM_POLYGON_ROBOT", new g2o::HyperGraphElementCreator<PolygonRobotFootprint>);
   return;
 }
 
@@ -312,6 +325,9 @@ bool TebOptimalPlanner::buildGraph(double weight_multiplier)
     ROS_WARN("Cannot build graph, because it is not empty. Call graphClear()!");
     return false;
   }
+  ROS_ASSERT_MSG(optimizer_->parameters().size() == 0, "Clean the TEB parameters before building the graph");
+
+  AddTEBParameters();
   
   // add TEB vertices
   AddTEBVertices();
@@ -389,6 +405,14 @@ void TebOptimalPlanner::clearGraph()
   {
     //optimizer.edges().clear(); // optimizer.clear deletes edges!!! Therefore do not run optimizer.edges().clear()
     optimizer_->vertices().clear();  // neccessary, because optimizer->clear deletes pointer-targets (therefore it deletes TEB states!)
+
+    // we own the parameters and can therefore just clear the pointers
+    for (int id : parameter_ids_)
+    {
+      optimizer_->parameters().detachParameter(id);
+    }
+    parameter_ids_.clear();
+
     optimizer_->clear();
   }
 }
@@ -412,6 +436,25 @@ void TebOptimalPlanner::AddTEBVertices()
   } 
 }
 
+void TebOptimalPlanner::AddTEBParameters()
+{
+  ROS_ASSERT_MSG(optimizer_->parameters().size() == 0, "Clean the TEB parameters first before adding again");
+  //add all the parameters which are configuration, obstacles, and robot model
+  optimizer_->addParameter(const_cast<TebConfig*>(cfg_));
+  parameter_ids_.push_back(cfg_->id());
+  int idForParam = optimizer_->parameters().size();
+  robot_model_->setId(idForParam);
+  optimizer_->addParameter(robot_model_.get());
+  parameter_ids_.push_back(idForParam);
+  idForParam++;
+  for (ObstaclePtr& obstacle : *obstacles_)
+  {
+    obstacle->setId(idForParam);
+    optimizer_->addParameter(obstacle.get());
+    parameter_ids_.push_back(idForParam);
+    idForParam++;
+  }
+}
 
 void TebOptimalPlanner::AddEdgesObstacles(double weight_multiplier)
 {
@@ -709,7 +752,7 @@ void TebOptimalPlanner::AddEdgesViaPoints()
     EdgeViaPoint* edge_viapoint = new EdgeViaPoint;
     edge_viapoint->setVertex(0,teb_.PoseVertex(index));
     edge_viapoint->setInformation(information);
-    edge_viapoint->setParameters(*cfg_, &(*vp_it));
+    edge_viapoint->setMeasurement(*vp_it);
     optimizer_->addEdge(edge_viapoint);   
   }
 }
@@ -735,7 +778,6 @@ void TebOptimalPlanner::AddEdgesVelocity()
       velocity_edge->setVertex(1,teb_.PoseVertex(i+1));
       velocity_edge->setVertex(2,teb_.TimeDiffVertex(i));
       velocity_edge->setInformation(information);
-      velocity_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(velocity_edge);
     }
   }
@@ -758,7 +800,6 @@ void TebOptimalPlanner::AddEdgesVelocity()
       velocity_edge->setVertex(1,teb_.PoseVertex(i+1));
       velocity_edge->setVertex(2,teb_.TimeDiffVertex(i));
       velocity_edge->setInformation(information);
-      velocity_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(velocity_edge);
     } 
     
@@ -788,7 +829,6 @@ void TebOptimalPlanner::AddEdgesAcceleration()
       acceleration_edge->setVertex(2,teb_.TimeDiffVertex(0));
       acceleration_edge->setInitialVelocity(vel_start_.second);
       acceleration_edge->setInformation(information);
-      acceleration_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(acceleration_edge);
     }
 
@@ -802,7 +842,6 @@ void TebOptimalPlanner::AddEdgesAcceleration()
       acceleration_edge->setVertex(3,teb_.TimeDiffVertex(i));
       acceleration_edge->setVertex(4,teb_.TimeDiffVertex(i+1));
       acceleration_edge->setInformation(information);
-      acceleration_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(acceleration_edge);
     }
     
@@ -815,7 +854,6 @@ void TebOptimalPlanner::AddEdgesAcceleration()
       acceleration_edge->setVertex(2,teb_.TimeDiffVertex( teb_.sizeTimeDiffs()-1 ));
       acceleration_edge->setGoalVelocity(vel_goal_.second);
       acceleration_edge->setInformation(information);
-      acceleration_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(acceleration_edge);
     }  
   }
@@ -836,7 +874,6 @@ void TebOptimalPlanner::AddEdgesAcceleration()
       acceleration_edge->setVertex(2,teb_.TimeDiffVertex(0));
       acceleration_edge->setInitialVelocity(vel_start_.second);
       acceleration_edge->setInformation(information);
-      acceleration_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(acceleration_edge);
     }
 
@@ -850,7 +887,6 @@ void TebOptimalPlanner::AddEdgesAcceleration()
       acceleration_edge->setVertex(3,teb_.TimeDiffVertex(i));
       acceleration_edge->setVertex(4,teb_.TimeDiffVertex(i+1));
       acceleration_edge->setInformation(information);
-      acceleration_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(acceleration_edge);
     }
     
@@ -863,7 +899,6 @@ void TebOptimalPlanner::AddEdgesAcceleration()
       acceleration_edge->setVertex(2,teb_.TimeDiffVertex( teb_.sizeTimeDiffs()-1 ));
       acceleration_edge->setGoalVelocity(vel_goal_.second);
       acceleration_edge->setInformation(information);
-      acceleration_edge->setTebConfig(*cfg_);
       optimizer_->addEdge(acceleration_edge);
     }  
   }
@@ -884,7 +919,6 @@ void TebOptimalPlanner::AddEdgesTimeOptimal()
     EdgeTimeOptimal* timeoptimal_edge = new EdgeTimeOptimal;
     timeoptimal_edge->setVertex(0,teb_.TimeDiffVertex(i));
     timeoptimal_edge->setInformation(information);
-    timeoptimal_edge->setTebConfig(*cfg_);
     optimizer_->addEdge(timeoptimal_edge);
   }
 }
@@ -903,7 +937,6 @@ void TebOptimalPlanner::AddEdgesShortestPath()
     shortest_path_edge->setVertex(0,teb_.PoseVertex(i));
     shortest_path_edge->setVertex(1,teb_.PoseVertex(i+1));
     shortest_path_edge->setInformation(information);
-    shortest_path_edge->setTebConfig(*cfg_);
     optimizer_->addEdge(shortest_path_edge);
   }
 }
@@ -927,7 +960,6 @@ void TebOptimalPlanner::AddEdgesKinematicsDiffDrive()
     kinematics_edge->setVertex(0,teb_.PoseVertex(i));
     kinematics_edge->setVertex(1,teb_.PoseVertex(i+1));      
     kinematics_edge->setInformation(information_kinematics);
-    kinematics_edge->setTebConfig(*cfg_);
     optimizer_->addEdge(kinematics_edge);
   }	 
 }
@@ -949,7 +981,6 @@ void TebOptimalPlanner::AddEdgesKinematicsCarlike()
     kinematics_edge->setVertex(0,teb_.PoseVertex(i));
     kinematics_edge->setVertex(1,teb_.PoseVertex(i+1));      
     kinematics_edge->setInformation(information_kinematics);
-    kinematics_edge->setTebConfig(*cfg_);
     optimizer_->addEdge(kinematics_edge);
   }  
 }

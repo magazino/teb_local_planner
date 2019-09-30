@@ -347,5 +347,199 @@ void TebConfig::checkDeprecated(const ros::NodeHandle& nh) const
     ROS_WARN("TebLocalPlannerROS() Param Warning: 'global_plan_via_point_sep' is deprecated. It has been replaced by 'global_plan_viapoint_sep' due to consistency reasons.");
 }
 
+bool TebConfig::read(std::istream& is)
+{
+  // Trajectory
+  is >> trajectory.teb_autosize;
+  is >> trajectory.dt_ref;
+  is >> trajectory.dt_hysteresis;
+  is >> trajectory.global_plan_overwrite_orientation;
+  is >> trajectory.allow_init_with_backwards_motion;
+  is >> trajectory.global_plan_viapoint_sep;
+  is >> trajectory.via_points_ordered;
+  is >> trajectory.max_global_plan_lookahead_dist;
+  is >> trajectory.exact_arc_length;
+  is >> trajectory.force_reinit_new_goal_dist;
+  is >> trajectory.feasibility_check_no_poses;
+  is >> trajectory.publish_feedback;
+  
+  // Robot     
+  is >> robot.max_vel_x;
+  is >> robot.max_vel_x_backwards;
+  is >> robot.max_vel_y;
+  is >> robot.max_vel_theta;
+  is >> robot.acc_lim_x;
+  is >> robot.acc_lim_y;
+  is >> robot.acc_lim_theta;
+  is >> robot.min_turning_radius;
+  is >> robot.wheelbase;
+  is >> robot.cmd_angle_instead_rotvel;
+  
+  // GoalTolerance
+  is >> goal_tolerance.xy_goal_tolerance;
+  is >> goal_tolerance.yaw_goal_tolerance;
+  is >> goal_tolerance.free_goal_vel;
+  
+  // Obstacles
+  is >> obstacles.min_obstacle_dist;
+  is >> obstacles.inflation_dist;
+  is >> obstacles.dynamic_obstacle_inflation_dist;
+  is >> obstacles.include_dynamic_obstacles;
+  is >> obstacles.include_costmap_obstacles;
+  is >> obstacles.legacy_obstacle_association;
+  is >> obstacles.obstacle_association_force_inclusion_factor;
+  is >> obstacles.obstacle_association_cutoff_factor;
+  is >> obstacles.costmap_obstacles_behind_robot_dist;
+  is >> obstacles.obstacle_poses_affected;
+
+  
+  // Optimization
+  is >> optim.no_inner_iterations;
+  is >> optim.no_outer_iterations;
+  is >> optim.optimization_activate;
+  is >> optim.optimization_verbose;
+  is >> optim.penalty_epsilon;
+  is >> optim.weight_max_vel_x;
+  is >> optim.weight_max_vel_y;
+  is >> optim.weight_max_vel_theta;
+  is >> optim.weight_acc_lim_x;
+  is >> optim.weight_acc_lim_y;
+  is >> optim.weight_acc_lim_theta;
+  is >> optim.weight_kinematics_nh;
+  is >> optim.weight_kinematics_forward_drive;
+  is >> optim.weight_kinematics_turning_radius;
+  is >> optim.weight_optimaltime;
+  is >> optim.weight_shortest_path;
+  is >> optim.weight_obstacle;
+  is >> optim.weight_inflation;
+  is >> optim.weight_dynamic_obstacle;
+  is >> optim.weight_dynamic_obstacle_inflation;
+  is >> optim.weight_viapoint;
+  is >> optim.weight_adapt_factor;
+  is >> optim.obstacle_cost_exponent;
+  
+  // Homotopy Class Planner
+  is >> hcp.enable_multithreading;
+  is >> hcp.max_number_classes;
+  is >> hcp.selection_cost_hysteresis;
+  is >> hcp.selection_prefer_initial_plan;
+  is >> hcp.selection_obst_cost_scale;
+  is >> hcp.selection_viapoint_cost_scale;
+  is >> hcp.selection_alternative_time_cost;
+  is >> hcp.switching_blocking_period;
+  
+  is >> hcp.obstacle_heading_threshold;
+  is >> hcp.roadmap_graph_no_samples;
+  is >> hcp.roadmap_graph_area_width;
+  is >> hcp.roadmap_graph_area_length_scale;
+  is >> hcp.h_signature_prescaler;
+  is >> hcp.h_signature_threshold;
+  is >> hcp.viapoints_all_candidates;
+  is >> hcp.visualize_hc_graph;
+  is >> hcp.visualize_with_time_as_z_axis_scale;
+  
+  // Recovery
+  is >> recovery.shrink_horizon_backup;
+  is >> recovery.oscillation_recovery;
+  return true;
+}
+
+bool TebConfig::write(std::ostream& os) const
+{
+  // Trajectory
+  os << trajectory.teb_autosize << " ";
+  os << trajectory.dt_ref << " ";
+  os << trajectory.dt_hysteresis << " ";
+  os << trajectory.global_plan_overwrite_orientation << " ";
+  os << trajectory.allow_init_with_backwards_motion << " ";
+  os << trajectory.global_plan_viapoint_sep << " ";
+  os << trajectory.via_points_ordered << " ";
+  os << trajectory.max_global_plan_lookahead_dist << " ";
+  os << trajectory.exact_arc_length << " ";
+  os << trajectory.force_reinit_new_goal_dist << " ";
+  os << trajectory.feasibility_check_no_poses << " ";
+  os << trajectory.publish_feedback << " ";
+  
+  // Robot     
+  os << robot.max_vel_x << " ";
+  os << robot.max_vel_x_backwards << " ";
+  os << robot.max_vel_y << " ";
+  os << robot.max_vel_theta << " ";
+  os << robot.acc_lim_x << " ";
+  os << robot.acc_lim_y << " ";
+  os << robot.acc_lim_theta << " ";
+  os << robot.min_turning_radius << " ";
+  os << robot.wheelbase << " ";
+  os << robot.cmd_angle_instead_rotvel << " ";
+  
+  // GoalTolerance
+  os << goal_tolerance.xy_goal_tolerance << " ";
+  os << goal_tolerance.yaw_goal_tolerance << " ";
+  os << goal_tolerance.free_goal_vel << " ";
+  
+  // Obstacles
+  os << obstacles.min_obstacle_dist << " ";
+  os << obstacles.inflation_dist << " ";
+  os << obstacles.dynamic_obstacle_inflation_dist << " ";
+  os << obstacles.include_dynamic_obstacles << " ";
+  os << obstacles.include_costmap_obstacles << " ";
+  os << obstacles.legacy_obstacle_association << " ";
+  os << obstacles.obstacle_association_force_inclusion_factor << " ";
+  os << obstacles.obstacle_association_cutoff_factor << " ";
+  os << obstacles.costmap_obstacles_behind_robot_dist << " ";
+  os << obstacles.obstacle_poses_affected << " ";
+
+  
+  // Optimization
+  os << optim.no_inner_iterations << " ";
+  os << optim.no_outer_iterations << " ";
+  os << optim.optimization_activate << " ";
+  os << optim.optimization_verbose << " ";
+  os << optim.penalty_epsilon << " ";
+  os << optim.weight_max_vel_x << " ";
+  os << optim.weight_max_vel_y << " ";
+  os << optim.weight_max_vel_theta << " ";
+  os << optim.weight_acc_lim_x << " ";
+  os << optim.weight_acc_lim_y << " ";
+  os << optim.weight_acc_lim_theta << " ";
+  os << optim.weight_kinematics_nh << " ";
+  os << optim.weight_kinematics_forward_drive << " ";
+  os << optim.weight_kinematics_turning_radius << " ";
+  os << optim.weight_optimaltime << " ";
+  os << optim.weight_shortest_path << " ";
+  os << optim.weight_obstacle << " ";
+  os << optim.weight_inflation << " ";
+  os << optim.weight_dynamic_obstacle << " ";
+  os << optim.weight_dynamic_obstacle_inflation << " ";
+  os << optim.weight_viapoint << " ";
+  os << optim.weight_adapt_factor << " ";
+  os << optim.obstacle_cost_exponent << " ";
+  
+  // Homotopy Class Planner
+  os << hcp.enable_multithreading << " ";
+  os << hcp.max_number_classes << " ";
+  os << hcp.selection_cost_hysteresis << " ";
+  os << hcp.selection_prefer_initial_plan << " ";
+  os << hcp.selection_obst_cost_scale << " ";
+  os << hcp.selection_viapoint_cost_scale << " ";
+  os << hcp.selection_alternative_time_cost << " ";
+  os << hcp.switching_blocking_period << " ";
+  
+  os << hcp.obstacle_heading_threshold << " ";
+  os << hcp.roadmap_graph_no_samples << " ";
+  os << hcp.roadmap_graph_area_width << " ";
+  os << hcp.roadmap_graph_area_length_scale << " ";
+  os << hcp.h_signature_prescaler << " ";
+  os << hcp.h_signature_threshold << " ";
+  os << hcp.viapoints_all_candidates << " ";
+  os << hcp.visualize_hc_graph << " ";
+  os << hcp.visualize_with_time_as_z_axis_scale << " ";
+  
+  // Recovery
+  os << recovery.shrink_horizon_backup << " ";
+  os << recovery.oscillation_recovery << " ";
+
+  return true;
+}
     
 } // namespace teb_local_planner

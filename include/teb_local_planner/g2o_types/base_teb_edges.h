@@ -77,9 +77,11 @@ public:
   /**
    * @brief Construct edge.
    */  
-  BaseTebUnaryEdge()
+  BaseTebUnaryEdge() : cfg_(nullptr)
   {
-      _vertices[0] = NULL;
+    this->resizeParameters(1);
+    this->installParameter(cfg_, 0, 0); // look up the TEB config as g2o parameter
+    _vertices[0] = NULL;
   }
   
   /**
@@ -104,24 +106,6 @@ public:
   {
     computeError();
     return _error;
-  }
-  
-  /**
-   * @brief Read values from input stream
-   */  	
-  virtual bool read(std::istream& is)
-  {
-    // TODO generic read
-    return true;
-  }
-
-  /**
-   * @brief Assign the TebConfig class for parameters.
-   * @param cfg TebConfig class
-   */ 
-  void setTebConfig(const TebConfig& cfg)
-  {
-    cfg_ = &cfg;
   }
     
 protected:
@@ -156,9 +140,11 @@ public:
   /**
    * @brief Construct edge.
    */  
-  BaseTebBinaryEdge()
+  BaseTebBinaryEdge() : cfg_(nullptr)
   {
-      _vertices[0] = _vertices[1] = NULL;
+    this->resizeParameters(1);
+    this->installParameter(cfg_, 0, 0); // look up the TEB config as g2o parameter
+    _vertices[0] = _vertices[1] = NULL;
   }
   
   /**
@@ -185,15 +171,6 @@ public:
   {
     computeError();
     return _error;
-  }
-
-  /**
-   * @brief Assign the TebConfig class for parameters.
-   * @param cfg TebConfig class
-   */ 
-  void setTebConfig(const TebConfig& cfg)
-  {
-    cfg_ = &cfg;
   }
   
 protected:
@@ -229,8 +206,10 @@ public:
   /**
    * @brief Construct edge.
    */  
-  BaseTebMultiEdge()
+  BaseTebMultiEdge() : cfg_(nullptr)
   {
+    this->resizeParameters(1);
+    this->installParameter(cfg_, 0, 0); // look up the TEB config as g2o parameter
 //     for(std::size_t i=0; i<_vertices.size(); ++i)
 //         _vertices[i] = NULL;
   }
@@ -269,15 +248,6 @@ public:
   {
     computeError();
     return _error;
-  }
-  
-  /**
-   * @brief Assign the TebConfig class for parameters.
-   * @param cfg TebConfig class
-   */ 
-  void setTebConfig(const TebConfig& cfg)
-  {
-    cfg_ = &cfg;
   }
   
 protected:

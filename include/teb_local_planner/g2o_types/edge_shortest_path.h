@@ -82,6 +82,7 @@ public:
 
   bool write(std::ostream& os) const
   {
+    os << cfg_->id() << " ";
     os << measurement() << " ";
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
@@ -91,6 +92,9 @@ public:
 
   bool read(std::istream& is)
   {
+    int paramId;
+    is >> paramId; // cfg
+    setParameterId(0, paramId);
     double aux = 0;
     is >> aux;
     setMeasurement(aux);

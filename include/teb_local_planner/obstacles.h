@@ -56,6 +56,7 @@
 #include <tf/tf.h>
 #include <teb_local_planner/distance_calculations.h>
 
+#include <g2o/core/parameter.h>
 
 namespace teb_local_planner
 {
@@ -64,7 +65,7 @@ namespace teb_local_planner
  * @class Obstacle
  * @brief Abstract class that defines the interface for modelling obstacles
  */
-class Obstacle
+class Obstacle : public g2o::Parameter
 {
 public:
   
@@ -444,7 +445,6 @@ public:
 
   virtual bool write(std::ostream& os) const
   {
-    os << "POINT ";
     Obstacle::write(os);
     os << pos_.x() << " " << pos_.y() << " ";
   }
@@ -606,7 +606,6 @@ public:
 
   virtual bool write(std::ostream& os) const
   {
-    os << "CIRCLE ";
     Obstacle::write(os);
     os << pos_.x() << " " << pos_.y() << " " << radius_ << " ";
   }
@@ -765,7 +764,6 @@ public:
 
   virtual bool write(std::ostream& os) const
   {
-    os << "LINE ";
     Obstacle::write(os);
     os << start_.x() << " " << start_.y() << " ";
     os << end_.x() << " " << end_.y() << " ";
@@ -999,7 +997,6 @@ public:
   
   virtual bool write(std::ostream& os) const
   {
-    os << "POLYGON ";
     Obstacle::write(os);
     os << vertices_.size() << " ";
     for (const auto& p: vertices_)
@@ -1042,25 +1039,6 @@ protected:
 public:	
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW  
 };
-
-namespace obstacle_factory
-{
-  static inline Obstacle* allocate(const std::string& name)
-  {
-    if (name == "POINT")
-      return new PointObstacle;
-    else if (name == "CIRCLE")
-      return new CircularObstacle;
-    else if (name == "LINE")
-      return new LineObstacle;
-    else if (name == "POLYGON")
-      return new PolygonObstacle;
-    else {
-      ROS_ERROR("Unknown obstacle type \"%s\"", name.c_str());
-      return nullptr;
-    }
-  }
-} // namespace obstacle_factory
 
 } // namespace teb_local_planner
 

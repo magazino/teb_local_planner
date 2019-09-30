@@ -63,16 +63,16 @@ namespace teb_local_planner
  * @see TebOptimalPlanner::AddEdgesViaPoints
  * @remarks Do not forget to call setTebConfig() and setViaPoint()
  */     
-class EdgeViaPoint : public BaseTebUnaryEdge<1, const Eigen::Vector2d*, VertexPose>
+class EdgeViaPoint : public BaseTebUnaryEdge<1, Eigen::Vector2d, VertexPose>
 {
 public:
     
   /**
    * @brief Construct edge.
    */    
-  EdgeViaPoint() 
+  EdgeViaPoint()
   {
-    _measurement = NULL;
+    _measurement.setZero();
   }
  
   /**
@@ -80,37 +80,18 @@ public:
    */    
   void computeError()
   {
-    ROS_ASSERT_MSG(cfg_ && _measurement, "You must call setTebConfig(), setViaPoint() on EdgeViaPoint()");
+    ROS_ASSERT_MSG(cfg_, "You must install the parameters on EdgeViaPoint()");
     const VertexPose* bandpt = static_cast<const VertexPose*>(_vertices[0]);
 
-    _error[0] = (bandpt->position() - *_measurement).norm();
+    _error[0] = (bandpt->position() - _measurement).norm();
 
     ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeViaPoint::computeError() _error[0]=%f\n",_error[0]);
   }
 
-  /**
-   * @brief Set pointer to associated via point for the underlying cost function 
-   * @param via_point 2D position vector containing the position of the via point
-   */ 
-  void setViaPoint(const Eigen::Vector2d* via_point)
-  {
-    _measurement = via_point;
-  }
-    
-  /**
-   * @brief Set all parameters at once
-   * @param cfg TebConfig class
-   * @param via_point 2D position vector containing the position of the via point
-   */ 
-  void setParameters(const TebConfig& cfg, const Eigen::Vector2d* via_point)
-  {
-    cfg_ = &cfg;
-    _measurement = via_point;
-  }
-
   bool write(std::ostream& os) const
   {
-    os << measurement()->x() << " " << measurement()->y() << " ";
+    os << cfg_->id() << " ";
+    os << measurement().x() << " " << measurement().x() << " ";
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
         os << " " << information()(i, j);
@@ -119,8 +100,11 @@ public:
 
   bool read(std::istream& is)
   {
-    Eigen::Vector2d* aux = new Eigen::Vector2d(Eigen::Vector2d::Zero());
-    is >> aux->x() >> aux->y();
+    int paramId;
+    is >> paramId; // cfg
+    setParameterId(0, paramId);
+    Eigen::Vector2d aux;
+    is >> aux.x() >> aux.y();
     setMeasurement(aux);
     for (int i = 0; i < information().rows(); ++i)
       for (int j = i; j < information().cols(); ++j)
