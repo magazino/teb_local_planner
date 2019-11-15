@@ -257,6 +257,12 @@ void TimedElasticBand::autoResize(double dt_ref, double dt_hysteresis, int min_s
           deleteTimeDiff(i);
           deletePose(i+1);
         }
+        else
+        { // last motion should be adjusted, shift time to the interval before
+          TimeDiff(i-1) += TimeDiff(i);
+          deleteTimeDiff(i);
+          deletePose(i);
+        }
 
         modified = true;
       }
