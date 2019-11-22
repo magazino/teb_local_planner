@@ -69,7 +69,5 @@ TEST(TEBBasic, autoResize)
 int main(int argc, char** argv)
 {
   testing::InitGoogleTest(&argc, argv);
-  ros::init(argc, argv, "TEBBasicsTester");
-  ros::NodeHandle nh;
   return RUN_ALL_TESTS();
 }
