@@ -614,17 +614,15 @@ void TimedElasticBand::updateAndPruneTEB(boost::optional<const PoseSE2&> new_sta
   if (new_goal && sizePoses()>0)
   {
     // find nearest state (using l2-norm) in order to prune the end of the trajectory.
-    double lookback_traj_length = 0.;
-    
-    double min_distance_to_teb = std::numeric_limits<double>::max();
-    int min_distance_to_teb_idx = sizePoses() - 1;
+    double dist_cache = std::numeric_limits<double>::max();
+    int nearest_idx = sizePoses() - 1;
     for (int i = sizePoses()-1; i > min_samples; --i)
     {
       double dist = (new_goal->position()- Pose(i).position()).norm();
-      if (dist <= min_distance_to_teb)
+      if (dist <= dist_cache)
       {
-        min_distance_to_teb = dist;
-        min_distance_to_teb_idx = i;
+        dist_cache = dist;
+        nearest_idx = i;
       }
       else
       {
@@ -633,11 +631,11 @@ void TimedElasticBand::updateAndPruneTEB(boost::optional<const PoseSE2&> new_sta
     }
     
     // prune trajectory at the end and replace last one with the goal
-    if (min_distance_to_teb_idx < sizePoses() - 1)
+    if (nearest_idx < sizePoses() - 1)
     {
-      const int num_elems_to_delete = sizePoses() - min_distance_to_teb_idx - 1;
-      deletePoses(min_distance_to_teb_idx, num_elems_to_delete);
-      deleteTimeDiffs(min_distance_to_teb_idx, num_elems_to_delete);
+      const int num_elems_to_delete = sizePoses() - nearest_idx - 1;
+      deletePoses(nearest_idx, num_elems_to_delete);
+      deleteTimeDiffs(nearest_idx, num_elems_to_delete);
     }
     BackPose() = *new_goal;
   }
