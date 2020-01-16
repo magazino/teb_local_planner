@@ -343,9 +343,15 @@ uint32_t TebLocalPlannerROS::computeVelocityCommands(const geometry_msgs::PoseSt
   // Do not allow config changes during the following optimization step
   boost::mutex::scoped_lock cfg_lock(cfg_.configMutex());
     
+  bool free_goal_vel = cfg_.goal_tolerance.free_goal_vel;
+  if (cfg_.goal_tolerance.adaptive_goal_vel)
+  { // arrive with zero velocity at the end of the global plan but fast on intermediate
+    free_goal_vel = goal_idx != static_cast<int>(global_plan_.size()) - 1;
+  }
+
   // Now perform the actual planning
-//   bool success = planner_->plan(robot_pose_, robot_goal_, robot_vel_, cfg_.goal_tolerance.free_goal_vel); // straight line init
-  bool success = planner_->plan(transformed_plan, &robot_vel_, cfg_.goal_tolerance.free_goal_vel);
+  // bool success = planner_->plan(robot_pose_, robot_goal_, robot_vel_, free_goal_vel); // straight line init
+  bool success = planner_->plan(transformed_plan, &robot_vel_, free_goal_vel);
   if (!success)
   {
     planner_->clearPlanner(); // force reinitialization for next time
