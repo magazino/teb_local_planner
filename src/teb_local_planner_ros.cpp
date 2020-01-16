@@ -343,25 +343,10 @@ uint32_t TebLocalPlannerROS::computeVelocityCommands(const geometry_msgs::PoseSt
   // Do not allow config changes during the following optimization step
   boost::mutex::scoped_lock cfg_lock(cfg_.configMutex());
     
-  // determine if we plan on reaching a sub-goal as fast as possible
   bool free_goal_vel = cfg_.goal_tolerance.free_goal_vel;
-  if (free_goal_vel && cfg_.goal_tolerance.zero_velocity_at_goal_remaining_path_len > 0.)
-  { // arrive with zero velocity at the end of the global plan
-    bool close_to_global_goal = true;
-    double remaining_path_len = 0.;
-    for (int i = goal_idx; i < static_cast<int>(global_plan_.size()) - 1; ++i)
-    {
-      remaining_path_len += distance_points2d(global_plan_[i].pose.position, global_plan_[i+1].pose.position);
-      if (remaining_path_len > cfg_.goal_tolerance.zero_velocity_at_goal_remaining_path_len)
-      {
-        close_to_global_goal = false;
-        break;
-      }
-    }
-    if (close_to_global_goal)
-    { // we should start to compute a trajectory that decelerates towards the goal
-      free_goal_vel = false;
-    }
+  if (cfg_.goal_tolerance.addaptive_goal_vel)
+  { // arrive with zero velocity at the end of the global plan but fast on intermediate
+    free_goal_vel = goal_idx != static_cast<int>(global_plan_.size()) - 1;
   }
 
   // Now perform the actual planning
