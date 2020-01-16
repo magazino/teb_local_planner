@@ -110,7 +110,7 @@ public:
     double yaw_goal_tolerance; //!< Allowed final orientation error
     double xy_goal_tolerance; //!< Allowed final euclidean distance to the goal position
     bool free_goal_vel; //!< Allow the robot's velocity to be nonzero (usally max_vel) for planning purposes
-    double addaptive_goal_vel; //!< Allow the robot's velocity to be nonzero if we are not approaching to the global goal
+    bool addaptive_goal_vel; //!< Allow the robot's velocity to be nonzero if we are not approaching to the global goal
     bool complete_global_plan; // true prevents the robot from ending the path early when it cross the end goal
   } goal_tolerance; //!< Goal tolerance related parameters
 
