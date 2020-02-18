@@ -268,6 +268,123 @@ public:
 };
 
 
+/**
+ * @class EdgeVelocityAbsolute
+ * @brief Edge defining the cost function for limiting the absolute translational velocity.
+ *
+ * The edge depends on three vertices \f$ \mathbf{s}_i, \mathbf{s}_{i-1}, \Delta T_i \f$ and minimizes: \n
+ * \f$ \min \textrm{penaltyInterval}( [max_v]^T ) \cdot weight \f$. \n
+ * \e max_v denotes the maximum velocity of the robot. \n
+ * \e weight can be set using setInformation(). \n
+ * \e penaltyInterval denotes the penalty function, see penaltyBoundToInterval(). \n
+ * The dimension of the error / cost vector is 1: the first component represents the velocity.
+ * @see TebOptimalPlanner::AddEdgesVelocity
+ * @remarks Do not forget to call setTebConfig()
+ */
+class EdgeVelocityAbsolute : public BaseTebMultiEdge<1, double>
+{
+public:
+  /**
+   * @brief Construct edge.
+   */
+  EdgeVelocityAbsolute()
+  {
+    this->resize(3); // Since we derive from a g2o::BaseMultiEdge, set the desired number of vertices
+  }
+
+  /**
+   * @brief Actual cost function
+   */
+  void computeError()
+  {
+    ROS_ASSERT_MSG(cfg_, "You must call setTebConfig on EdgeVelocityAbsolute()");
+    const VertexPose *conf1 = static_cast<const VertexPose *>(_vertices[0]);
+    const VertexPose *conf2 = static_cast<const VertexPose *>(_vertices[1]);
+    const VertexTimeDiff *deltaT = static_cast<const VertexTimeDiff *>(_vertices[2]);
+    Eigen::Vector2d deltaS = conf2->position() - conf1->position();
+
+    double absolute_v = deltaS.norm() / deltaT->estimate();
+
+    // compute the relative translation to decide if forward or backward velocity threshold
+    double r_dx = std::cos(conf1->theta()) * deltaS.x() + std::sin(conf1->theta()) * deltaS.y();
+    double max_vel_x = r_dx >= 0 ? cfg_->robot.max_vel_x : cfg_->robot.max_vel_x_backwards;
+    double max_vel_absolute = std::max(max_vel_x, cfg_->robot.max_vel_y);
+
+    if (absolute_v >= max_vel_absolute - cfg_->optim.penalty_epsilon)
+      _error[0] = absolute_v - (max_vel_absolute - cfg_->optim.penalty_epsilon);
+    else
+      _error[0] = 0.;
+
+    if (!std::isfinite(_error[0]))
+      ROS_ERROR("EdgeVelocityStraight::computeError() _error[0]=%f\n", _error[0]);
+    ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeVelocityAbsolute::computeError() _error[0]=%f\n", _error[0]);
+  }
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
+
+/**
+ * @class EdgeVelocityStraight
+ * @brief Edge defining the cost function for preferring straight x or y motions and not a combination
+ */
+class EdgeVelocityStraight : public BaseTebBinaryEdge<1, double, VertexPose, VertexPose>
+{
+public:
+  /**
+   * @brief Construct edge.
+   */
+  EdgeVelocityStraight()
+  {
+  }
+
+  /**
+   * @brief Actual cost function
+   */
+  void computeError()
+  {
+    ROS_ASSERT_MSG(cfg_, "You must call setTebConfig on EdgeVelocityStraight()");
+    const VertexPose *conf1 = static_cast<const VertexPose *>(_vertices[0]);
+    const VertexPose *conf2 = static_cast<const VertexPose *>(_vertices[1]);
+    Eigen::Vector2d deltaS = conf2->position() - conf1->position();
+
+    double cos_theta1 = std::cos(conf1->theta());
+    double sin_theta1 = std::sin(conf1->theta());
+
+    // transform conf2 into current robot frame conf1 (inverse 2d rotation matrix)
+    double r_dx = cos_theta1 * deltaS.x() + sin_theta1 * deltaS.y();
+    double r_dy = -sin_theta1 * deltaS.x() + cos_theta1 * deltaS.y();
+
+    double angle_of_motion = std::atan2(r_dy, r_dx);
+    _error[0] = normalize_to_straight_direction(angle_of_motion) * deltaS.norm();
+
+    if (!std::isfinite(_error[0]))
+      ROS_ERROR("EdgeVelocityStraight::computeError() _error[0]=%f\n", _error[0]);
+
+    ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeVelocityStraight::computeError() _error[0]=%f\n", _error[0]);
+  }
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+protected:
+  /**
+   * normalize to [-pi/4, pi/4)
+   */
+  inline double normalize_to_straight_direction(double theta)
+  {
+    if (theta >= -M_PI_4 && theta < M_PI_4)
+      return theta;
+    double multiplier = std::floor(theta / M_PI_2);
+    theta = theta - multiplier * M_PI_2;
+    if (theta >= M_PI_4)
+      theta -= M_PI_2;
+    if (theta < -M_PI_4)
+      theta += M_PI_2;
+    return theta;
+  }
+};
+
 } // end namespace
 
 #endif

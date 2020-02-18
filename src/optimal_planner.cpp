@@ -127,6 +127,7 @@ void TebOptimalPlanner::registerG2OTypes()
   factory->registerType("EDGE_SHORTEST_PATH", new g2o::HyperGraphElementCreator<EdgeShortestPath>);
   factory->registerType("EDGE_VELOCITY", new g2o::HyperGraphElementCreator<EdgeVelocity>);
   factory->registerType("EDGE_VELOCITY_HOLONOMIC", new g2o::HyperGraphElementCreator<EdgeVelocityHolonomic>);
+  factory->registerType("EDGE_VELOCITY_ABSOLUTE", new g2o::HyperGraphElementCreator<EdgeVelocityAbsolute>);
   factory->registerType("EDGE_ACCELERATION", new g2o::HyperGraphElementCreator<EdgeAcceleration>);
   factory->registerType("EDGE_ACCELERATION_START", new g2o::HyperGraphElementCreator<EdgeAccelerationStart>);
   factory->registerType("EDGE_ACCELERATION_GOAL", new g2o::HyperGraphElementCreator<EdgeAccelerationGoal>);
@@ -745,27 +746,60 @@ void TebOptimalPlanner::AddEdgesVelocity()
   }
   else // holonomic-robot
   {
-    if ( cfg_->optim.weight_max_vel_x==0 && cfg_->optim.weight_max_vel_y==0 && cfg_->optim.weight_max_vel_theta==0)
-      return; // if weight equals zero skip adding edges!
-      
     int n = teb_.sizePoses();
-    Eigen::Matrix<double,3,3> information;
-    information.fill(0);
-    information(0,0) = cfg_->optim.weight_max_vel_x;
-    information(1,1) = cfg_->optim.weight_max_vel_y;
-    information(2,2) = cfg_->optim.weight_max_vel_theta;
-
-    for (int i=0; i < n - 1; ++i)
+    if (cfg_->optim.weight_max_vel_absolute != 0)
     {
-      EdgeVelocityHolonomic* velocity_edge = new EdgeVelocityHolonomic;
-      velocity_edge->setVertex(0,teb_.PoseVertex(i));
-      velocity_edge->setVertex(1,teb_.PoseVertex(i+1));
-      velocity_edge->setVertex(2,teb_.TimeDiffVertex(i));
-      velocity_edge->setInformation(information);
-      velocity_edge->setTebConfig(*cfg_);
-      optimizer_->addEdge(velocity_edge);
-    } 
-    
+      Eigen::Matrix<double, 1, 1> information;
+      information(0, 0) = cfg_->optim.weight_max_vel_absolute;
+
+      for (int i = 0; i < n - 1; ++i)
+      {
+        EdgeVelocityAbsolute* velocity_absolute = new EdgeVelocityAbsolute;
+        velocity_absolute->setVertex(0, teb_.PoseVertex(i));
+        velocity_absolute->setVertex(1, teb_.PoseVertex(i + 1));
+        velocity_absolute->setVertex(2, teb_.TimeDiffVertex(i));
+        velocity_absolute->setInformation(information);
+        velocity_absolute->setTebConfig(*cfg_);
+        optimizer_->addEdge(velocity_absolute);
+      }
+    }
+
+    if (cfg_->optim.weight_straight_velocity != 0)
+    {
+      Eigen::Matrix<double, 1, 1> information;
+      information(0, 0) = cfg_->optim.weight_straight_velocity;
+
+      for (int i = 0; i < n - 1; ++i)
+      {
+        EdgeVelocityStraight* velocity_straight = new EdgeVelocityStraight;
+        velocity_straight->setVertex(0, teb_.PoseVertex(i));
+        velocity_straight->setVertex(1, teb_.PoseVertex(i + 1));
+        velocity_straight->setVertex(2, teb_.TimeDiffVertex(i));
+        velocity_straight->setInformation(information);
+        velocity_straight->setTebConfig(*cfg_);
+        optimizer_->addEdge(velocity_straight);
+      }
+    }
+
+    if (cfg_->optim.weight_max_vel_x != 0 || cfg_->optim.weight_max_vel_y != 0 || cfg_->optim.weight_max_vel_theta != 0)
+    { // if weight equals zero skip adding edges!
+      Eigen::Matrix<double, 3, 3> information;
+      information.fill(0);
+      information(0, 0) = cfg_->optim.weight_max_vel_x;
+      information(1, 1) = cfg_->optim.weight_max_vel_y;
+      information(2, 2) = cfg_->optim.weight_max_vel_theta;
+
+      for (int i = 0; i < n - 1; ++i)
+      {
+        EdgeVelocityHolonomic *velocity_edge = new EdgeVelocityHolonomic;
+        velocity_edge->setVertex(0, teb_.PoseVertex(i));
+        velocity_edge->setVertex(1, teb_.PoseVertex(i + 1));
+        velocity_edge->setVertex(2, teb_.TimeDiffVertex(i));
+        velocity_edge->setInformation(information);
+        velocity_edge->setTebConfig(*cfg_);
+        optimizer_->addEdge(velocity_edge);
+      }
+    }
   }
 }
 

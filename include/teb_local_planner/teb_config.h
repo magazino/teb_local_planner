@@ -147,12 +147,14 @@ public:
     double weight_max_vel_x; //!< Optimization weight for satisfying the maximum allowed translational velocity
     double weight_max_vel_y; //!< Optimization weight for satisfying the maximum allowed strafing velocity (in use only for holonomic robots)
     double weight_max_vel_theta; //!< Optimization weight for satisfying the maximum allowed angular velocity
+    double weight_max_vel_absolute; //<! Optimization weight for satisfying the maximum absolute velocity (in use only for holonomic robots)
     double weight_acc_lim_x; //!< Optimization weight for satisfying the maximum allowed translational acceleration
     double weight_acc_lim_y; //!< Optimization weight for satisfying the maximum allowed strafing acceleration (in use only for holonomic robots)
     double weight_acc_lim_theta; //!< Optimization weight for satisfying the maximum allowed angular acceleration
     double weight_kinematics_nh; //!< Optimization weight for satisfying the non-holonomic kinematics
     double weight_kinematics_forward_drive; //!< Optimization weight for forcing the robot to choose only forward directions (positive transl. velocities, only diffdrive robot)
     double weight_kinematics_turning_radius; //!< Optimization weight for enforcing a minimum turning radius (carlike robots)
+    double weight_straight_velocity; //!< Optimization weight for enforcing a straight velocity vector
     double weight_optimaltime; //!< Optimization weight for contracting the trajectory w.r.t. transition time
     double weight_shortest_path; //!< Optimization weight for contracting the trajectory w.r.t. path length
     double weight_obstacle; //!< Optimization weight for satisfying a minimum separation from obstacles
@@ -300,12 +302,14 @@ public:
     optim.weight_max_vel_x = 2; //1
     optim.weight_max_vel_y = 2;
     optim.weight_max_vel_theta = 1;
+    optim.weight_max_vel_absolute = 0.;
     optim.weight_acc_lim_x = 1;
     optim.weight_acc_lim_y = 1;
     optim.weight_acc_lim_theta = 1;
     optim.weight_kinematics_nh = 1000;
     optim.weight_kinematics_forward_drive = 1;
     optim.weight_kinematics_turning_radius = 1;
+    optim.weight_straight_velocity = 0.;
     optim.weight_optimaltime = 1;
     optim.weight_shortest_path = 0;
     optim.weight_obstacle = 50;

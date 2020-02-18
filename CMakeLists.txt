@@ -268,7 +268,11 @@ install(DIRECTORY
 #############
 
 if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(test_teb_basics test/teb_basics.cpp)
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(test_teb_basics test/teb.test
+    test/teb_edges.cpp
+    test/teb_optimal_planner.cpp
+    test/teb_basics.cpp)
   if(TARGET test_teb_basics)
      target_link_libraries(test_teb_basics teb_local_planner)
   endif()
