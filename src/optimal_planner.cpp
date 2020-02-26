@@ -128,6 +128,7 @@ void TebOptimalPlanner::registerG2OTypes()
   factory->registerType("EDGE_VELOCITY", new g2o::HyperGraphElementCreator<EdgeVelocity>);
   factory->registerType("EDGE_VELOCITY_HOLONOMIC", new g2o::HyperGraphElementCreator<EdgeVelocityHolonomic>);
   factory->registerType("EDGE_VELOCITY_ABSOLUTE", new g2o::HyperGraphElementCreator<EdgeVelocityAbsolute>);
+  factory->registerType("EDGE_VELOCITY_STRAIGHT", new g2o::HyperGraphElementCreator<EdgeVelocityStraight>);
   factory->registerType("EDGE_ACCELERATION", new g2o::HyperGraphElementCreator<EdgeAcceleration>);
   factory->registerType("EDGE_ACCELERATION_START", new g2o::HyperGraphElementCreator<EdgeAccelerationStart>);
   factory->registerType("EDGE_ACCELERATION_GOAL", new g2o::HyperGraphElementCreator<EdgeAccelerationGoal>);
@@ -774,7 +775,6 @@ void TebOptimalPlanner::AddEdgesVelocity()
         EdgeVelocityStraight* velocity_straight = new EdgeVelocityStraight;
         velocity_straight->setVertex(0, teb_.PoseVertex(i));
         velocity_straight->setVertex(1, teb_.PoseVertex(i + 1));
-        velocity_straight->setVertex(2, teb_.TimeDiffVertex(i));
         velocity_straight->setInformation(information);
         velocity_straight->setTebConfig(*cfg_);
         optimizer_->addEdge(velocity_straight);

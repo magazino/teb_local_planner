@@ -310,18 +310,9 @@ public:
     double max_vel_x = r_dx >= 0 ? cfg_->robot.max_vel_x : cfg_->robot.max_vel_x_backwards;
     double max_vel_absolute = std::max(max_vel_x, cfg_->robot.max_vel_y);
 
-    if (absolute_v >= max_vel_absolute - cfg_->optim.penalty_epsilon)
-      _error[0] = absolute_v - (max_vel_absolute - cfg_->optim.penalty_epsilon);
-    else
-      _error[0] = 0.;
-
-    if (!std::isfinite(_error[0]))
-      ROS_ERROR("EdgeVelocityStraight::computeError() _error[0]=%f\n", _error[0]);
+    _error[0] = std::max(absolute_v + cfg_->optim.penalty_epsilon - max_vel_absolute, 0.);
     ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeVelocityAbsolute::computeError() _error[0]=%f\n", _error[0]);
   }
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 /**
@@ -331,12 +322,6 @@ public:
 class EdgeVelocityStraight : public BaseTebBinaryEdge<1, double, VertexPose, VertexPose>
 {
 public:
-  /**
-   * @brief Construct edge.
-   */
-  EdgeVelocityStraight()
-  {
-  }
 
   /**
    * @brief Actual cost function
@@ -358,20 +343,14 @@ public:
     double angle_of_motion = std::atan2(r_dy, r_dx);
     _error[0] = normalize_to_straight_direction(angle_of_motion) * deltaS.norm();
 
-    if (!std::isfinite(_error[0]))
-      ROS_ERROR("EdgeVelocityStraight::computeError() _error[0]=%f\n", _error[0]);
-
     ROS_ASSERT_MSG(std::isfinite(_error[0]), "EdgeVelocityStraight::computeError() _error[0]=%f\n", _error[0]);
   }
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 protected:
   /**
    * normalize to [-pi/4, pi/4)
    */
-  inline double normalize_to_straight_direction(double theta)
+  double normalize_to_straight_direction(double theta)
   {
     if (theta >= -M_PI_4 && theta < M_PI_4)
       return theta;
