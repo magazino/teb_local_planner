@@ -40,7 +40,7 @@
 
 namespace teb_local_planner
 {
-    
+
 void TebConfig::loadRosParamFromNodeHandle(const ros::NodeHandle& nh)
 {
     
@@ -112,12 +112,14 @@ void TebConfig::loadRosParamFromNodeHandle(const ros::NodeHandle& nh)
   nh.param("weight_max_vel_x", optim.weight_max_vel_x, optim.weight_max_vel_x);
   nh.param("weight_max_vel_y", optim.weight_max_vel_y, optim.weight_max_vel_y);
   nh.param("weight_max_vel_theta", optim.weight_max_vel_theta, optim.weight_max_vel_theta);
+  nh.param("weight_max_vel_absolute", optim.weight_max_vel_absolute, optim.weight_max_vel_absolute);
   nh.param("weight_acc_lim_x", optim.weight_acc_lim_x, optim.weight_acc_lim_x);
   nh.param("weight_acc_lim_y", optim.weight_acc_lim_y, optim.weight_acc_lim_y);
   nh.param("weight_acc_lim_theta", optim.weight_acc_lim_theta, optim.weight_acc_lim_theta);
   nh.param("weight_kinematics_nh", optim.weight_kinematics_nh, optim.weight_kinematics_nh);
   nh.param("weight_kinematics_forward_drive", optim.weight_kinematics_forward_drive, optim.weight_kinematics_forward_drive);
   nh.param("weight_kinematics_turning_radius", optim.weight_kinematics_turning_radius, optim.weight_kinematics_turning_radius);
+  nh.param("weight_straight_velocity", optim.weight_straight_velocity, optim.weight_straight_velocity);
   nh.param("weight_optimaltime", optim.weight_optimaltime, optim.weight_optimaltime);
   nh.param("weight_shortest_path", optim.weight_shortest_path, optim.weight_shortest_path);
   nh.param("weight_obstacle", optim.weight_obstacle, optim.weight_obstacle);
@@ -227,12 +229,14 @@ void TebConfig::reconfigure(TebLocalPlannerReconfigureConfig& cfg)
   optim.weight_max_vel_x = cfg.weight_max_vel_x;
   optim.weight_max_vel_y = cfg.weight_max_vel_y;
   optim.weight_max_vel_theta = cfg.weight_max_vel_theta;
+  optim.weight_max_vel_absolute = cfg.weight_max_vel_absolute;
   optim.weight_acc_lim_x = cfg.weight_acc_lim_x;
   optim.weight_acc_lim_y = cfg.weight_acc_lim_y;
   optim.weight_acc_lim_theta = cfg.weight_acc_lim_theta;
   optim.weight_kinematics_nh = cfg.weight_kinematics_nh;
   optim.weight_kinematics_forward_drive = cfg.weight_kinematics_forward_drive;
   optim.weight_kinematics_turning_radius = cfg.weight_kinematics_turning_radius;
+  optim.weight_straight_velocity = cfg.weight_straight_velocity;
   optim.weight_optimaltime = cfg.weight_optimaltime;
   optim.weight_shortest_path = cfg.weight_shortest_path;
   optim.weight_obstacle = cfg.weight_obstacle;
